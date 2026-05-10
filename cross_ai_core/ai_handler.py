@@ -146,8 +146,8 @@ def reset_client_cache(make: "str | None" = None) -> None:
         else:
             # Resolve alias → make so reset by alias works as expected.
             try:
-                from .aliases import resolve_alias
-                make = resolve_alias(make).make
+                from .agents import resolve_agent
+                make = resolve_agent(make).make
             except ValueError:
                 pass  # unknown — fall through and try the literal key
             _client_cache.pop(make, None)
@@ -198,8 +198,8 @@ def process_prompt(
     # CAC-10: resolve alias → (make, alias_default_model).  Legacy callers
     # passing a make string still work because every built-in make is
     # auto-registered as a self-alias with model=None.
-    from .aliases import resolve_alias
-    spec = resolve_alias(ai_key)
+    from .agents import resolve_agent
+    spec = resolve_agent(ai_key)
     make = spec.make
 
     handler_cls = AI_HANDLER_REGISTRY.get(make)
@@ -262,8 +262,8 @@ def process_prompt(
 
 
 def get_data_title(ai_key: str, data: dict):
-    from .aliases import resolve_alias
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_alias(ai_key).make)
+    from .agents import resolve_agent
+    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     title = handler_cls.get_title(data)
@@ -271,16 +271,16 @@ def get_data_title(ai_key: str, data: dict):
 
 
 def get_content(ai_key, response):
-    from .aliases import resolve_alias
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_alias(ai_key).make)
+    from .agents import resolve_agent
+    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     return handler_cls.get_content(response)
 
 
 def put_content(ai_key, report, response):
-    from .aliases import resolve_alias
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_alias(ai_key).make)
+    from .agents import resolve_agent
+    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     return handler_cls.put_content(report, response)
@@ -329,8 +329,8 @@ def put_content_auto(report: str, response: dict) -> dict:
 
 
 def get_data_content(ai_key, select_data):
-    from .aliases import resolve_alias
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_alias(ai_key).make)
+    from .agents import resolve_agent
+    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     content = handler_cls.get_data_content(select_data)
@@ -347,8 +347,8 @@ def get_ai_list() -> list[str]:
     Returns a new list on every call so that callers who mutate the result
     (e.g. ``get_ai_list().remove("xai")``) do not corrupt the global registry.
     """
-    from .aliases import get_aliases
-    return list(get_aliases().keys())
+    from .agents import get_agents
+    return list(get_agents().keys())
 
 
 def get_ai_make_list() -> list[str]:
@@ -401,9 +401,9 @@ def get_usage(ai_key: str, response: dict) -> dict:
             total_tokens  (int) — sum of the above (computed if absent)
         All values default to 0 if the field is missing.
     """
-    from .aliases import resolve_alias
+    from .agents import resolve_agent
     try:
-        make = resolve_alias(ai_key).make
+        make = resolve_agent(ai_key).make
     except ValueError:
         return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     handler_cls = AI_HANDLER_REGISTRY.get(make)
@@ -429,20 +429,20 @@ def get_default_ai():
 
     Never hardcode a provider name — always call this function.
     """
-    from .aliases import get_aliases
-    aliases = get_aliases()
+    from .agents import get_agents
+    agents = get_agents()
     for var in ("DEFAULT_AGENT", "DEFAULT_AI"):
         configured = os.environ.get(var, "").strip()
-        if configured and configured in aliases:
+        if configured and configured in agents:
             return configured
     # Post-AGT-1a: registry may be empty for fresh installs.
-    return next(iter(aliases), None)
+    return next(iter(agents), None)
 
 
 def get_ai_make(ai_key: str):
     """Return the canonical *make* for *ai_key* (resolves alias → make first)."""
-    from .aliases import resolve_alias
-    spec = resolve_alias(ai_key)
+    from .agents import resolve_agent
+    spec = resolve_agent(ai_key)
     handler_cls = AI_HANDLER_REGISTRY.get(spec.make)
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
@@ -466,8 +466,8 @@ def get_ai_model(ai_key: str) -> str:
     Raises:
         ValueError: if *ai_key* is not a registered alias or make.
     """
-    from .aliases import resolve_alias
-    spec = resolve_alias(ai_key)
+    from .agents import resolve_agent
+    spec = resolve_agent(ai_key)
     alias_env = os.environ.get(f"{ai_key.upper().replace('-', '_')}_MODEL", "").strip()
     if alias_env:
         return alias_env
@@ -515,9 +515,9 @@ def check_api_key(ai_make: str, paths_checked: list | None = None) -> bool:
         ``False`` — key is missing; diagnostic has already been printed.
     """
     # Accept either a make or an alias — resolve to make for the env-var lookup.
-    from .aliases import resolve_alias
+    from .agents import resolve_agent
     try:
-        ai_make = resolve_alias(ai_make).make
+        ai_make = resolve_agent(ai_make).make
     except ValueError:
         pass  # unknown alias — fall through to the make-based lookup
     env_var = _API_KEY_ENV_VARS.get(ai_make)

@@ -51,16 +51,20 @@ from cross_ai_core.ai_handler import (   # noqa: F401
     put_content_auto,
     reset_client_cache,
 )
-from cross_ai_core.aliases import (   # noqa: F401
-    AliasSpec,
+from cross_ai_core.agents import (   # noqa: F401
+    AgentSpec,
+    AliasSpec,           # back-compat (deprecated, removed in 0.10.0)
     did_you_mean,
+    get_agent_load_error,
     get_agents,
-    get_alias_load_error,
-    get_aliases,
+    get_alias_load_error,  # back-compat (deprecated, removed in 0.10.0)
+    get_aliases,           # back-compat (deprecated, removed in 0.10.0)
     get_rate_limit_group,
     migrate_v1_to_v2,
-    reload_aliases,
-    resolve_alias,
+    reload_agents,
+    reload_aliases,        # back-compat (deprecated, removed in 0.10.0)
+    resolve_agent,
+    resolve_alias,         # back-compat (deprecated, removed in 0.10.0)
     write_agents_file,
 )
 from cross_ai_core.keys import (   # noqa: F401
@@ -119,17 +123,22 @@ __all__ = [
     "AI_LIST",
     "AIResponse",
     "reset_client_cache",
-    # Aliases (CAC-10) / Agents (AGT-1)
+    # Agents (AGT-1 / AGT-9)
+    "AgentSpec",
+    "resolve_agent",
+    "get_agents",
+    "get_agent_load_error",
+    "did_you_mean",
+    "get_rate_limit_group",
+    "reload_agents",
+    "migrate_v1_to_v2",
+    "write_agents_file",
+    # Back-compat (deprecated AGT-9, removed in 0.10.0)
     "AliasSpec",
     "resolve_alias",
     "get_aliases",
-    "get_agents",
     "get_alias_load_error",
-    "did_you_mean",
-    "get_rate_limit_group",
     "reload_aliases",
-    "migrate_v1_to_v2",
-    "write_agents_file",
     # API-key detection (AGT-1c)
     "PROVIDER_API_KEY_ENV",
     "api_key_env_var",

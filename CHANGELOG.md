@@ -6,7 +6,64 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.8.0] — 2026-05-10  *(unreleased — Agents v2 foundation)*
+## [0.9.0] — 2026-05-10  *(AGT-9 alias → agent cleanup)*
+
+Cleanup-only release that completes the rename started by Agents v2 in
+0.8.0.  Pairs with `cross-st 0.11.0`.  No behavioural change beyond the
+two deprecation warnings noted below — anything that worked in 0.8.0
+keeps working unmodified for one release via the back-compat shim.
+
+### Renamed
+- **Module**: `cross_ai_core.aliases` → `cross_ai_core.agents`.  The
+  legacy import path (`from cross_ai_core.aliases import …`) still
+  works for one release via a thin shim that emits a
+  :class:`DeprecationWarning` on import.  Removed in 0.10.0.
+- **Symbols** (legacy names kept as back-compat assignments inside
+  `agents.py`, also still re-exported from the top-level
+  `cross_ai_core` namespace for one release):
+
+  | Old (deprecated) | New |
+  |---|---|
+  | `AliasSpec` | `AgentSpec` |
+  | `_AI_ALIASES` | `_AGENTS` |
+  | `_ALIAS_LOAD_ERROR` | `_AGENT_LOAD_ERROR` |
+  | `_aliases_file_path()` | `_agents_file_path()` |
+  | `_load_aliases()` | `_load_agents()` |
+  | `reload_aliases()` | `reload_agents()` |
+  | `resolve_alias()` | `resolve_agent()` |
+  | `get_aliases()` | `get_agents()` |
+  | `get_alias_load_error()` | `get_agent_load_error()` |
+
+### Deprecated
+- **Env-var `CROSS_AI_ALIASES_FILE`** is no longer honoured for path
+  resolution; only `CROSS_AI_AGENTS_FILE` is consulted.  Setting the
+  legacy var emits a one-time :class:`DeprecationWarning` directing
+  the user to switch.  The legacy var read-path itself is removed
+  entirely in 0.10.0.
+
+### Tests
+- `tests/test_aliases.py` → `tests/test_agents.py`.
+- New `tests/test_legacy_aliases_shim.py` pins both the
+  `DeprecationWarning` and the back-compat re-exports.
+- `tests/conftest.py` autouse fixture renamed
+  `_seed_legacy_alias_registry` → `_seed_legacy_agent_registry`; uses
+  the new `_AGENTS` / `AgentSpec` / `reload_agents` symbols.
+
+### Migration
+External callers should switch import paths in this order:
+
+1. Anything that did `from cross_ai_core.aliases import X` → change to
+   `from cross_ai_core.agents import X` (or, for public names, simply
+   `from cross_ai_core import X`).
+2. Anything using `AliasSpec` / `resolve_alias` / `get_aliases` /
+   `reload_aliases` / `get_alias_load_error` → replace with the
+   `Agent…`-prefixed counterparts above.
+3. Anyone setting `CROSS_AI_ALIASES_FILE` in their environment →
+   rename to `CROSS_AI_AGENTS_FILE`.
+
+---
+
+## [0.8.0] — 2026-05-10  *(Agents v2 foundation)*
 
 **Agents v2 (AGT-1a/b/c/d).**  First-class agents replace auto-seeded
 aliases.  Ships paired with `cross-st 0.10.0`, which performs the

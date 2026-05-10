@@ -1,21 +1,20 @@
-"""tests/test_aliases.py — agent registry tests (CAC-10 + AGT-1)."""
+"""tests/test_agents.py — agent registry tests (CAC-10 + AGT-1)."""
 import json
 from unittest.mock import MagicMock
 
 import pytest
 
 import cross_ai_core
-from cross_ai_core.aliases import (
-    AliasSpec,
+from cross_ai_core.agents import (
+    AgentSpec,
     SCHEMA_VERSION,
     did_you_mean,
     get_agents,
-    get_alias_load_error,
-    get_aliases,
+    get_agent_load_error,
     get_rate_limit_group,
     migrate_v1_to_v2,
-    reload_aliases,
-    resolve_alias,
+    reload_agents,
+    resolve_agent,
     write_agents_file,
 )
 from cross_ai_core.ai_handler import (
@@ -37,14 +36,14 @@ from cross_ai_core.keys import (
 
 
 @pytest.fixture
-def alias_file(tmp_path, monkeypatch):
+def agent_file(tmp_path, monkeypatch):
     path = tmp_path / "cross_ai_models.json"
     monkeypatch.setenv("CROSS_AI_AGENTS_FILE", str(path))
     monkeypatch.delenv("CROSS_AI_ALIASES_FILE", raising=False)
-    reload_aliases()
+    reload_agents()
     yield path
     monkeypatch.delenv("CROSS_AI_AGENTS_FILE", raising=False)
-    reload_aliases()
+    reload_agents()
 
 
 def _write_v1(path, agents):
@@ -70,109 +69,109 @@ def _isolate_client_cache():
     reset_client_cache()
 
 
-class TestAliasSpec:
+class TestAgentSpec:
     def test_spec_is_named_tuple(self):
-        s = AliasSpec(make="anthropic", model="claude-opus-4-5")
+        s = AgentSpec(make="anthropic", model="claude-opus-4-5")
         assert s == ("anthropic", "claude-opus-4-5")
 
     def test_spec_model_can_be_none(self):
-        assert AliasSpec(make="xai", model=None).model is None
+        assert AgentSpec(make="xai", model=None).model is None
 
 
 class TestLoadAliases:
-    def test_missing_file_yields_empty_registry(self, alias_file):
-        assert not alias_file.exists()
-        reload_aliases()
-        assert dict(get_aliases()) == {}
-        assert get_alias_load_error() is None
+    def test_missing_file_yields_empty_registry(self, agent_file):
+        assert not agent_file.exists()
+        reload_agents()
+        assert dict(get_agents()) == {}
+        assert get_agent_load_error() is None
 
-    def test_blank_file_yields_empty_registry(self, alias_file):
-        alias_file.write_text("   \n  ")
-        reload_aliases()
-        assert dict(get_aliases()) == {}
-        assert get_alias_load_error() is None
+    def test_blank_file_yields_empty_registry(self, agent_file):
+        agent_file.write_text("   \n  ")
+        reload_agents()
+        assert dict(get_agents()) == {}
+        assert get_agent_load_error() is None
 
-    def test_v1_happy_path(self, alias_file):
-        _write_v1(alias_file, {
+    def test_v1_happy_path(self, agent_file):
+        _write_v1(agent_file, {
             "anthropic-opus":   {"make": "anthropic", "model": "claude-opus-4-5"},
             "anthropic-sonnet": {"make": "anthropic", "model": "claude-sonnet-4-5"},
         })
-        reload_aliases()
-        assert list(get_aliases().keys()) == ["anthropic-opus", "anthropic-sonnet"]
-        assert get_aliases()["anthropic-opus"] == AliasSpec("anthropic", "claude-opus-4-5")
-        assert get_alias_load_error() is None
+        reload_agents()
+        assert list(get_agents().keys()) == ["anthropic-opus", "anthropic-sonnet"]
+        assert get_agents()["anthropic-opus"] == AgentSpec("anthropic", "claude-opus-4-5")
+        assert get_agent_load_error() is None
 
-    def test_v2_happy_path(self, alias_file):
-        _write_v2(alias_file, {
+    def test_v2_happy_path(self, agent_file):
+        _write_v2(agent_file, {
             "opus":   {"provider": "anthropic", "model": "claude-opus-4-5"},
             "sonnet": {"provider": "anthropic", "model": "claude-sonnet-4-5"},
         })
-        reload_aliases()
-        assert list(get_aliases().keys()) == ["opus", "sonnet"]
-        assert get_aliases()["opus"] == AliasSpec("anthropic", "claude-opus-4-5")
-        assert get_alias_load_error() is None
+        reload_agents()
+        assert list(get_agents().keys()) == ["opus", "sonnet"]
+        assert get_agents()["opus"] == AgentSpec("anthropic", "claude-opus-4-5")
+        assert get_agent_load_error() is None
 
-    def test_malformed_json_recorded_as_error(self, alias_file):
-        alias_file.write_text("{not valid json")
-        reload_aliases()
-        assert dict(get_aliases()) == {}
-        assert "Could not read" in (get_alias_load_error() or "")
+    def test_malformed_json_recorded_as_error(self, agent_file):
+        agent_file.write_text("{not valid json")
+        reload_agents()
+        assert dict(get_agents()) == {}
+        assert "Could not read" in (get_agent_load_error() or "")
 
-    def test_unknown_provider_rejected(self, alias_file):
-        _write_v1(alias_file, {"weird": {"make": "no_such_provider", "model": "x"}})
-        reload_aliases()
-        assert "weird" not in get_aliases()
-        assert "unknown provider" in (get_alias_load_error() or "").lower()
+    def test_unknown_provider_rejected(self, agent_file):
+        _write_v1(agent_file, {"weird": {"make": "no_such_provider", "model": "x"}})
+        reload_agents()
+        assert "weird" not in get_agents()
+        assert "unknown provider" in (get_agent_load_error() or "").lower()
 
-    def test_top_level_not_object_rejected(self, alias_file):
-        alias_file.write_text(json.dumps(["not", "a", "dict"]))
-        reload_aliases()
-        assert dict(get_aliases()) == {}
-        assert "must be a JSON object" in (get_alias_load_error() or "")
+    def test_top_level_not_object_rejected(self, agent_file):
+        agent_file.write_text(json.dumps(["not", "a", "dict"]))
+        reload_agents()
+        assert dict(get_agents()) == {}
+        assert "must be a JSON object" in (get_agent_load_error() or "")
 
-    def test_v2_provider_wins_when_both_keys_present(self, alias_file):
+    def test_v2_provider_wins_when_both_keys_present(self, agent_file):
         envelope = {
             "version": 2,
             "agents": {"mixed": {"provider": "anthropic", "make": "openai", "model": "x"}},
             "_migrated_to_agents_v2": True,
         }
-        alias_file.write_text(json.dumps(envelope))
-        reload_aliases()
-        assert get_aliases()["mixed"].make == "anthropic"
+        agent_file.write_text(json.dumps(envelope))
+        reload_agents()
+        assert get_agents()["mixed"].make == "anthropic"
 
 
 class TestResolveAlias:
-    def test_user_agent_resolves(self, alias_file):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "claude-opus-4-5"}})
-        reload_aliases()
-        assert resolve_alias("opus") == AliasSpec("anthropic", "claude-opus-4-5")
+    def test_user_agent_resolves(self, agent_file):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "claude-opus-4-5"}})
+        reload_agents()
+        assert resolve_agent("opus") == AgentSpec("anthropic", "claude-opus-4-5")
 
-    def test_unknown_with_empty_registry_hints_setup(self, alias_file):
+    def test_unknown_with_empty_registry_hints_setup(self, agent_file):
         with pytest.raises(ValueError) as exc:
-            resolve_alias("anthropic")
+            resolve_agent("anthropic")
         msg = str(exc.value)
         assert "Unsupported AI model" in msg
         assert "No agents defined" in msg
         assert "st-admin --setup" in msg
 
-    def test_unknown_with_defined_agents_suggests_typo(self, alias_file):
-        _write_v2(alias_file, {"anthropic": {"provider": "anthropic", "model": None}})
-        reload_aliases()
+    def test_unknown_with_defined_agents_suggests_typo(self, agent_file):
+        _write_v2(agent_file, {"anthropic": {"provider": "anthropic", "model": None}})
+        reload_agents()
         with pytest.raises(ValueError, match="Did you mean 'anthropic'"):
-            resolve_alias("antrhopic")
+            resolve_agent("antrhopic")
 
-    def test_unknown_no_close_match_no_suggestion(self, alias_file):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "x"}})
-        reload_aliases()
+    def test_unknown_no_close_match_no_suggestion(self, agent_file):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "x"}})
+        reload_agents()
         with pytest.raises(ValueError) as exc:
-            resolve_alias("zzzzzz")
+            resolve_agent("zzzzzz")
         assert "Did you mean" not in str(exc.value)
 
-    def test_no_late_registered_make_fallback(self, alias_file, monkeypatch):
+    def test_no_late_registered_make_fallback(self, agent_file, monkeypatch):
         monkeypatch.setitem(AI_HANDLER_REGISTRY, "experimental", MagicMock())
         try:
             with pytest.raises(ValueError):
-                resolve_alias("experimental")
+                resolve_agent("experimental")
         finally:
             AI_HANDLER_REGISTRY.pop("experimental", None)
 
@@ -225,48 +224,48 @@ class TestMigrateV1ToV2:
 
 
 class TestWriteAgentsFile:
-    def test_round_trip(self, alias_file):
+    def test_round_trip(self, agent_file):
         write_agents_file(
-            {"opus": AliasSpec("anthropic", "claude-opus-4-5"),
-             "mini": AliasSpec("openai", "gpt-4o-mini")},
-            str(alias_file),
+            {"opus": AgentSpec("anthropic", "claude-opus-4-5"),
+             "mini": AgentSpec("openai", "gpt-4o-mini")},
+            str(agent_file),
         )
-        reload_aliases()
-        assert get_aliases()["opus"] == AliasSpec("anthropic", "claude-opus-4-5")
-        assert get_aliases()["mini"] == AliasSpec("openai", "gpt-4o-mini")
+        reload_agents()
+        assert get_agents()["opus"] == AgentSpec("anthropic", "claude-opus-4-5")
+        assert get_agents()["mini"] == AgentSpec("openai", "gpt-4o-mini")
 
-    def test_emits_v2_envelope_with_provider_inner_key(self, alias_file):
-        write_agents_file({"opus": AliasSpec("anthropic", "x")}, str(alias_file))
-        on_disk = json.loads(alias_file.read_text())
+    def test_emits_v2_envelope_with_provider_inner_key(self, agent_file):
+        write_agents_file({"opus": AgentSpec("anthropic", "x")}, str(agent_file))
+        on_disk = json.loads(agent_file.read_text())
         assert on_disk["version"] == 2
         assert on_disk["_migrated_to_agents_v2"] is True
         assert on_disk["agents"]["opus"] == {"provider": "anthropic", "model": "x"}
 
-    def test_preserves_iteration_order(self, alias_file):
+    def test_preserves_iteration_order(self, agent_file):
         from collections import OrderedDict
         agents = OrderedDict([
-            ("z-last",  AliasSpec("anthropic", "x")),
-            ("a-first", AliasSpec("openai",    "y")),
+            ("z-last",  AgentSpec("anthropic", "x")),
+            ("a-first", AgentSpec("openai",    "y")),
         ])
-        write_agents_file(agents, str(alias_file))
-        on_disk = json.loads(alias_file.read_text())
+        write_agents_file(agents, str(agent_file))
+        on_disk = json.loads(agent_file.read_text())
         assert list(on_disk["agents"].keys()) == ["z-last", "a-first"]
 
-    def test_atomic_no_partial_file_on_failure(self, alias_file, monkeypatch):
+    def test_atomic_no_partial_file_on_failure(self, agent_file, monkeypatch):
         good = {
             "version": 2,
             "agents": {"keep": {"provider": "openai", "model": "x"}},
             "_migrated_to_agents_v2": True,
         }
-        alias_file.write_text(json.dumps(good))
+        agent_file.write_text(json.dumps(good))
 
         def boom(*a, **kw):
             raise RuntimeError("disk full")
 
         monkeypatch.setattr(json, "dump", boom)
         with pytest.raises(RuntimeError):
-            write_agents_file({"new": AliasSpec("openai", "y")}, str(alias_file))
-        assert json.loads(alias_file.read_text()) == good
+            write_agents_file({"new": AgentSpec("openai", "y")}, str(agent_file))
+        assert json.loads(agent_file.read_text()) == good
 
 
 class TestKeysModule:
@@ -310,18 +309,18 @@ class TestKeysModule:
 
 
 class TestRateLimitGroup:
-    def test_two_agents_same_provider_share_group(self, alias_file):
-        _write_v2(alias_file, {
+    def test_two_agents_same_provider_share_group(self, agent_file):
+        _write_v2(agent_file, {
             "opus":   {"provider": "anthropic", "model": "claude-opus-4-5"},
             "sonnet": {"provider": "anthropic", "model": "claude-sonnet-4-5"},
         })
-        reload_aliases()
+        reload_agents()
         g1, c1 = get_rate_limit_group("opus")
         g2, c2 = get_rate_limit_group("sonnet")
         assert g1 == g2 == "anthropic"
         assert c1 == c2 == 2
 
-    def test_unknown_alias_raises(self, alias_file):
+    def test_unknown_alias_raises(self, agent_file):
         with pytest.raises(ValueError):
             get_rate_limit_group("no-such-agent")
 
@@ -338,50 +337,50 @@ def mock_handler(monkeypatch):
 
 
 class TestProcessPromptAliasAware:
-    def test_unknown_alias_raises_in_empty_registry(self, alias_file, mock_handler):
+    def test_unknown_alias_raises_in_empty_registry(self, agent_file, mock_handler):
         with pytest.raises(ValueError):
             process_prompt("mock_make", "hi", use_cache=False)
 
-    def test_self_alias_resolves(self, alias_file, mock_handler):
-        _write_v2(alias_file, {"mock_make": {"provider": "mock_make", "model": None}})
-        reload_aliases()
+    def test_self_alias_resolves(self, agent_file, mock_handler):
+        _write_v2(agent_file, {"mock_make": {"provider": "mock_make", "model": None}})
+        reload_agents()
         result = process_prompt("mock_make", "hi", use_cache=False)
         assert result.response["_make"] == "mock_make"
         assert result.response["_alias"] == "mock_make"
         assert result.response["_model"] == "mock-default"
 
-    def test_alias_resolves_to_make_and_model(self, alias_file, mock_handler):
-        _write_v2(alias_file, {"mock-fast": {"provider": "mock_make", "model": "mock-fast-v1"}})
-        reload_aliases()
+    def test_alias_resolves_to_make_and_model(self, agent_file, mock_handler):
+        _write_v2(agent_file, {"mock-fast": {"provider": "mock_make", "model": "mock-fast-v1"}})
+        reload_agents()
         result = process_prompt("mock-fast", "hi", use_cache=False)
         assert result.response["_make"] == "mock_make"
         assert result.response["_alias"] == "mock-fast"
         assert result.response["_model"] == "mock-fast-v1"
         assert result.model == "mock-fast-v1"
 
-    def test_explicit_model_kwarg_wins(self, alias_file, mock_handler):
-        _write_v2(alias_file, {"mock-fast": {"provider": "mock_make", "model": "mock-fast-v1"}})
-        reload_aliases()
+    def test_explicit_model_kwarg_wins(self, agent_file, mock_handler):
+        _write_v2(agent_file, {"mock-fast": {"provider": "mock_make", "model": "mock-fast-v1"}})
+        reload_agents()
         result = process_prompt("mock-fast", "hi", use_cache=False, model="overridden")
         assert result.response["_model"] == "overridden"
 
-    def test_alias_env_var_overrides_spec(self, alias_file, mock_handler, monkeypatch):
-        _write_v2(alias_file, {"mock-fast": {"provider": "mock_make", "model": "mock-fast-v1"}})
-        reload_aliases()
+    def test_alias_env_var_overrides_spec(self, agent_file, mock_handler, monkeypatch):
+        _write_v2(agent_file, {"mock-fast": {"provider": "mock_make", "model": "mock-fast-v1"}})
+        reload_agents()
         monkeypatch.setenv("MOCK_FAST_MODEL", "from-alias-env")
         result = process_prompt("mock-fast", "hi", use_cache=False)
         assert result.response["_model"] == "from-alias-env"
 
-    def test_make_env_var_legacy_fallback(self, alias_file, mock_handler, monkeypatch):
-        _write_v2(alias_file, {"mock_make": {"provider": "mock_make", "model": None}})
-        reload_aliases()
+    def test_make_env_var_legacy_fallback(self, agent_file, mock_handler, monkeypatch):
+        _write_v2(agent_file, {"mock_make": {"provider": "mock_make", "model": None}})
+        reload_agents()
         monkeypatch.setenv("MOCK_MAKE_MODEL", "from-make-env")
         result = process_prompt("mock_make", "hi", use_cache=False)
         assert result.response["_model"] == "from-make-env"
 
 
 class TestAliasesShareClient:
-    def test_two_aliases_same_make_share_client(self, alias_file, monkeypatch):
+    def test_two_aliases_same_make_share_client(self, agent_file, monkeypatch):
         construction_count = [0]
         sentinel_client = object()
         handler = MagicMock()
@@ -398,11 +397,11 @@ class TestAliasesShareClient:
         handler.get_client.side_effect = _make_client
         monkeypatch.setitem(AI_HANDLER_REGISTRY, "mock_share", handler)
         try:
-            _write_v2(alias_file, {
+            _write_v2(agent_file, {
                 "share-a": {"provider": "mock_share", "model": "a"},
                 "share-b": {"provider": "mock_share", "model": "b"},
             })
-            reload_aliases()
+            reload_agents()
             process_prompt("share-a", "hi", use_cache=False)
             process_prompt("share-b", "hi", use_cache=False)
             assert construction_count[0] == 1
@@ -412,65 +411,65 @@ class TestAliasesShareClient:
 
 
 class TestListAndDefault:
-    def test_get_ai_list_returns_agents(self, alias_file):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "claude-opus-4-5"}})
-        reload_aliases()
+    def test_get_ai_list_returns_agents(self, agent_file):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "claude-opus-4-5"}})
+        reload_agents()
         assert "opus" in get_ai_list()
 
-    def test_get_ai_list_empty_when_no_agents(self, alias_file):
+    def test_get_ai_list_empty_when_no_agents(self, agent_file):
         assert get_ai_list() == []
 
-    def test_get_default_ai_accepts_default_agent_env(self, alias_file, monkeypatch):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "x"}})
-        reload_aliases()
+    def test_get_default_ai_accepts_default_agent_env(self, agent_file, monkeypatch):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "x"}})
+        reload_agents()
         monkeypatch.setenv("DEFAULT_AGENT", "opus")
         monkeypatch.delenv("DEFAULT_AI", raising=False)
         assert get_default_ai() == "opus"
 
-    def test_get_default_ai_falls_back_to_legacy_default_ai(self, alias_file, monkeypatch):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "x"}})
-        reload_aliases()
+    def test_get_default_ai_falls_back_to_legacy_default_ai(self, agent_file, monkeypatch):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "x"}})
+        reload_agents()
         monkeypatch.delenv("DEFAULT_AGENT", raising=False)
         monkeypatch.setenv("DEFAULT_AI", "opus")
         assert get_default_ai() == "opus"
 
-    def test_get_default_ai_returns_first_agent_when_no_env(self, alias_file, monkeypatch):
-        _write_v2(alias_file, {
+    def test_get_default_ai_returns_first_agent_when_no_env(self, agent_file, monkeypatch):
+        _write_v2(agent_file, {
             "first":  {"provider": "openai",    "model": "gpt-4o"},
             "second": {"provider": "anthropic", "model": "claude-opus-4-5"},
         })
-        reload_aliases()
+        reload_agents()
         monkeypatch.delenv("DEFAULT_AGENT", raising=False)
         monkeypatch.delenv("DEFAULT_AI", raising=False)
         assert get_default_ai() == "first"
 
-    def test_get_default_ai_returns_none_when_empty(self, alias_file, monkeypatch):
+    def test_get_default_ai_returns_none_when_empty(self, agent_file, monkeypatch):
         monkeypatch.delenv("DEFAULT_AGENT", raising=False)
         monkeypatch.delenv("DEFAULT_AI", raising=False)
         assert get_default_ai() is None
 
-    def test_get_ai_make_returns_resolved_make(self, alias_file):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "x"}})
-        reload_aliases()
+    def test_get_ai_make_returns_resolved_make(self, agent_file):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "x"}})
+        reload_agents()
         assert get_ai_make("opus") == "anthropic"
 
-    def test_get_ai_model_alias_resolution(self, alias_file):
-        _write_v2(alias_file, {"opus": {"provider": "anthropic", "model": "claude-opus-4-5"}})
-        reload_aliases()
+    def test_get_ai_model_alias_resolution(self, agent_file):
+        _write_v2(agent_file, {"opus": {"provider": "anthropic", "model": "claude-opus-4-5"}})
+        reload_agents()
         assert get_ai_model("opus") == "claude-opus-4-5"
 
 
 class TestPublicExports:
     def test_exports_include_new_agent_names(self):
         for name in (
-            "AliasSpec", "resolve_alias", "get_aliases",
-            "get_alias_load_error", "did_you_mean", "get_rate_limit_group",
-            "reload_aliases", "get_ai_make_list",
+            "AgentSpec", "resolve_agent", "get_agents",
+            "get_agent_load_error", "did_you_mean", "get_rate_limit_group",
+            "reload_agents", "get_ai_make_list",
             "get_agents",
             "has_api_key", "api_key_env_var", "PROVIDER_API_KEY_ENV",
             "migrate_v1_to_v2", "write_agents_file",
         ):
             assert hasattr(cross_ai_core, name), f"{name} not exported"
 
-    def test_get_agents_is_alias_of_get_aliases(self):
-        assert get_agents() is get_aliases()
+    def test_get_agents_is_alias_of_get_agents(self):
+        assert get_agents() is get_agents()

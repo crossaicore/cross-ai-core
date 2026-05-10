@@ -1,19 +1,19 @@
 """
 tests/conftest.py — session-wide test fixtures.
 
-AGT-1 changed the alias registry to no longer auto-seed built-in
+AGT-1 changed the agent registry to no longer auto-seed built-in
 provider names.  Pre-existing test files in this suite (test_ai_handler,
 TestProcessPrompt, TestMakeStamp, …) call ``process_prompt("xai", …)``
 or ``process_prompt("mock_ai", …)`` directly without first defining an
 agent — they were written when those names were free.
 
 Rather than rewrite every legacy test, this conftest emulates the
-cross-st AGT-2 migration once at session start: it seeds one self-alias
+cross-st AGT-2 migration once at session start: it seeds one self-agent
 per built-in provider plus the canonical mock provider names that the
 ai_handler tests register at runtime via ``patch.dict``.
 
-Tests in ``test_aliases.py`` that explicitly want an empty registry use
-their own ``alias_file`` fixture which monkey-patches
+Tests in ``test_agents.py`` that explicitly want an empty registry use
+their own ``agent_file`` fixture which monkey-patches
 ``CROSS_AI_AGENTS_FILE`` to a fresh tmp path and reloads — that path
 takes precedence over this session-wide seed.
 """
@@ -25,7 +25,7 @@ from collections import OrderedDict
 
 import pytest
 
-from cross_ai_core.aliases import _AI_ALIASES, AliasSpec, reload_aliases
+from cross_ai_core.agents import _AGENTS, AgentSpec, reload_agents
 from cross_ai_core.ai_handler import AI_LIST
 
 
@@ -36,26 +36,26 @@ _LEGACY_TEST_PROVIDERS: tuple[str, ...] = (
 
 
 @pytest.fixture(autouse=True)
-def _seed_legacy_alias_registry(monkeypatch, tmp_path_factory):
-    """Pre-populate ``_AI_ALIASES`` with built-in + mock self-aliases.
+def _seed_legacy_agent_registry(monkeypatch, tmp_path_factory):
+    """Pre-populate ``_AGENTS`` with built-in + mock self-agents.
 
-    Runs for **every** test.  Tests in ``test_aliases.py`` overwrite
-    ``CROSS_AI_AGENTS_FILE`` and call ``reload_aliases()`` themselves —
+    Runs for **every** test.  Tests in ``test_agents.py`` overwrite
+    ``CROSS_AI_AGENTS_FILE`` and call ``reload_agents()`` themselves —
     that wipes the seed and they get the empty-registry behaviour they
     expect, so this fixture does not interfere.
     """
-    seed: "OrderedDict[str, AliasSpec]" = OrderedDict()
+    seed: "OrderedDict[str, AgentSpec]" = OrderedDict()
     for make in AI_LIST:
-        seed[make] = AliasSpec(make=make, model=None)
+        seed[make] = AgentSpec(make=make, model=None)
     for mock in _LEGACY_TEST_PROVIDERS:
-        seed[mock] = AliasSpec(make=mock, model=None)
+        seed[mock] = AgentSpec(make=mock, model=None)
 
-    saved = OrderedDict(_AI_ALIASES)
-    _AI_ALIASES.clear()
-    _AI_ALIASES.update(seed)
+    saved = OrderedDict(_AGENTS)
+    _AGENTS.clear()
+    _AGENTS.update(seed)
     try:
         yield
     finally:
-        _AI_ALIASES.clear()
-        _AI_ALIASES.update(saved)
+        _AGENTS.clear()
+        _AGENTS.update(saved)
 
