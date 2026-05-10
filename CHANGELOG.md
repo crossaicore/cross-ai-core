@@ -6,7 +6,86 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.7.1] — 2026-04-30
+## [0.8.0] — 2026-05-10  *(unreleased — Agents v2 foundation)*
+
+**Agents v2 (AGT-1a/b/c/d).**  First-class agents replace auto-seeded
+aliases.  Ships paired with `cross-st 0.10.0`, which performs the
+on-disk migration and the `--ai → --agent` CLI flag rename.
+
+⚠️  **Breaking changes** — every consumer must define an agent before
+calling any provider:
+
+- `_load_aliases()` no longer auto-seeds one entry per built-in
+  provider.  A fresh user with no `~/.cross_ai_models.json` gets an
+  *empty* registry; `resolve_alias("anthropic")` now raises
+  `ValueError("No agents defined.  Run 'st-admin --setup' (or
+  'st-admin > AI > Manage > Add') to create one.")` instead of silently
+  resolving to a self-alias.
+- `resolve_alias()` no longer falls back to `AI_HANDLER_REGISTRY` for
+  late-registered providers (the silent escape hatch used by some
+  pre-AGT tests has been removed).
+- `get_default_ai()` returns `None` when the registry is empty (was:
+  hardcoded fallback to `AI_LIST[0]`).
+- `get_ai_list()` returns `[]` when no agents are defined; it no longer
+  pretends the 5 built-in makes are pre-registered.  Use
+  `get_ai_make_list()` if you need the canonical built-in list.
+
+### Added
+
+- **`cross_ai_core/keys.py`** (AGT-1c) — single source of truth for
+  provider API-key detection:
+  - `PROVIDER_API_KEY_ENV: dict[str, tuple[str, …]]` — gemini accepts
+    both `GEMINI_API_KEY` and `GOOGLE_API_KEY`; the first non-empty
+    value wins.
+  - `has_api_key(provider) -> bool` — value-only check; never makes a
+    live API call.  Raises `ValueError` for unknown providers.
+  - `api_key_env_var(provider) -> str` — canonical env-var name for
+    diagnostics.
+- **`cross_ai_core.aliases`** schema layer (AGT-1d):
+  - `SCHEMA_VERSION = 2` constant.
+  - Reader accepts both v1 (legacy flat dict, inner `make` key) and v2
+    (envelope `{"version": 2, "agents": {...}, "_migrated_to_agents_v2": true}`,
+    inner `provider` key).  When both `provider` and `make` are present
+    on a record, `provider` wins.
+  - `migrate_v1_to_v2(data: dict) -> dict` — pure-function helper that
+    upgrades a v1 dict to the v2 envelope; idempotent on v2 input;
+    skips inner specs that are not dicts or lack a provider key.
+    Used by the cross-st AGT-2 migration.
+  - `write_agents_file(agents, path=None) -> str` — atomic writer
+    (temp file + `os.replace`); always emits the v2 envelope; preserves
+    iteration order; rolls back the temp file on `json.dump` failure.
+- **`cross_ai_core.aliases.get_agents()`** (AGT-1b) — preferred name
+  for `get_aliases()` (alias kept for back-compat).
+- **`CROSS_AI_AGENTS_FILE`** environment variable — preferred name for
+  the alias-file override.  `CROSS_AI_ALIASES_FILE` is still honoured
+  but takes lower precedence when both are set.
+- **`DEFAULT_AGENT`** environment variable — preferred name for the
+  default-provider override.  `DEFAULT_AI` is still honoured.
+
+### Changed
+
+- `_API_KEY_ENV_VARS` in `ai_handler` now derives from
+  `keys.PROVIDER_API_KEY_ENV` so all key-detection surfaces agree.
+- `check_api_key()` now uses `keys.has_api_key()` internally — gemini
+  callers benefit from the multi-name (`GEMINI_API_KEY` /
+  `GOOGLE_API_KEY`) check.
+- Diagnostic messages reference *provider* / *agent* rather than
+  *make* / *alias*.
+- `resolve_alias()` typo-suggestion error message lists "Defined
+  agents" (was: "Known").
+
+### Tests
+
+- 220 passing (was 196 in 0.7.1) — +24 net (new keys + schema +
+  empty-registry coverage; legacy "auto-seeded built-ins" assertions
+  rewritten to use `get_ai_make_list()`).
+- New `tests/conftest.py` seeds the 5 built-in providers (plus the
+  legacy mock-provider names used by `test_ai_handler`) for the test
+  session, emulating the cross-st AGT-2 migration.
+
+---
+
+
 
 **Model discovery (CAC-10h).** Adds a single helper —
 `get_available_models(make)` — that asks each provider's SDK what models the

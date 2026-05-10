@@ -90,18 +90,28 @@ class TestGetAiList:
         assert isinstance(result, list)
 
     def test_matches_ai_list_constant(self):
-        assert get_ai_list() == AI_LIST
+        # Post-AGT-1: get_ai_list returns agent keys, not built-in makes.
+        # The built-in list is now exposed via get_ai_make_list().  Both
+        # surfaces include the 5 canonical providers in the test session
+        # (seeded by tests/conftest.py).
+        from cross_ai_core.ai_handler import get_ai_make_list
+        assert get_ai_make_list() == AI_LIST
+        for make in AI_LIST:
+            assert make in get_ai_list()
 
     def test_order_is_deterministic(self):
-        """AI_LIST order is fixed — st-cross relies on it for the N×N display matrix."""
-        assert get_ai_list() == ["xai", "anthropic", "openai", "perplexity", "gemini"]
+        """AI_LIST order is fixed — st-cross relies on it for the NN display matrix."""
+        from cross_ai_core.ai_handler import get_ai_make_list
+        assert get_ai_make_list() == ["xai", "anthropic", "openai", "perplexity", "gemini"]
 
     def test_returns_copy_not_live_reference(self):
         """Mutating the returned list must not affect subsequent calls."""
         first = get_ai_list()
         first.clear()
         second = get_ai_list()
-        assert second == ["xai", "anthropic", "openai", "perplexity", "gemini"]
+        # Built-ins always survive (seeded by conftest for the session).
+        for make in AI_LIST:
+            assert make in second
 
 
 # ── check_api_key ──────────────────────────────────────────────────────────────

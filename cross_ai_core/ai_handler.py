@@ -414,23 +414,29 @@ def get_usage(ai_key: str, response: dict) -> dict:
 
 def get_default_ai():
     """
-    Return the user-configured default AI alias.
+    Return the user-configured default agent.
 
-    Resolution order:
-      1. ``DEFAULT_AI`` environment variable (set via st-admin or .env).
-         May be either an alias name or a built-in make string — built-in
-         makes are auto-aliased to themselves so both forms work.
-      2. First entry in the alias registry (which falls back to AI_LIST).
+    Resolution order (post-AGT-1):
+      1. ``DEFAULT_AGENT`` environment variable (set by ``st-admin > AI > d``
+         in cross-st 0.10+).
+      2. ``DEFAULT_AI`` environment variable (legacy — pre-Agents-v2).
+      3. First entry in the agent registry.
+
+    Returns ``None`` when no agents are defined and no env var is set.
+    Callers that need a provider should print the cross-st AGT-2 hint
+    ("run st-admin --setup") rather than fall back to a hardcoded
+    provider name.
 
     Never hardcode a provider name — always call this function.
     """
     from .aliases import get_aliases
     aliases = get_aliases()
-    configured = os.environ.get("DEFAULT_AI", "").strip()
-    if configured and configured in aliases:
-        return configured
-    # registry is guaranteed non-empty (built-ins always seed it)
-    return next(iter(aliases))
+    for var in ("DEFAULT_AGENT", "DEFAULT_AI"):
+        configured = os.environ.get(var, "").strip()
+        if configured and configured in aliases:
+            return configured
+    # Post-AGT-1a: registry may be empty for fresh installs.
+    return next(iter(aliases), None)
 
 
 def get_ai_make(ai_key: str):
@@ -478,13 +484,14 @@ def get_ai_model(ai_key: str) -> str:
 
 # ── API key validation ────────────────────────────────────────────────────────
 
-# Map every registered make → the environment variable that holds its key.
+# Map every registered make → its primary environment-variable name.
+# Source of truth lives in ``cross_ai_core.keys`` (AGT-1c) so that
+# ``has_api_key()`` and ``check_api_key()`` agree.  Kept here as a thin
+# alias for back-compat with any consumer that imported it directly.
+from .keys import PROVIDER_API_KEY_ENV as _PROVIDER_API_KEY_ENV  # noqa: E402
+
 _API_KEY_ENV_VARS: dict[str, str] = {
-    "xai":        "XAI_API_KEY",
-    "anthropic":  "ANTHROPIC_API_KEY",
-    "openai":     "OPENAI_API_KEY",
-    "perplexity": "PERPLEXITY_API_KEY",
-    "gemini":     "GEMINI_API_KEY",
+    provider: names[0] for provider, names in _PROVIDER_API_KEY_ENV.items()
 }
 
 
@@ -517,7 +524,11 @@ def check_api_key(ai_make: str, paths_checked: list | None = None) -> bool:
     if not env_var:
         return True  # unknown provider — let the SDK surface the real error
 
-    if os.environ.get(env_var, "").strip():
+    # has_api_key() honours every accepted env-var name (e.g. gemini
+    # accepts GEMINI_API_KEY or GOOGLE_API_KEY).  env_var is just the
+    # canonical name shown in the diagnostic.
+    from .keys import has_api_key
+    if has_api_key(ai_make):
         return True  # key present ✓
 
     if paths_checked is None:

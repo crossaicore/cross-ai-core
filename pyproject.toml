@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "cross-ai-core"
-version         = "0.7.1"
+version         = "0.8.0"
 description     = "Multi-provider AI dispatcher with response caching and error handling."
 readme          = "README.md"
 license         = "MIT"

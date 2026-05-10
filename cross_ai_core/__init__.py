@@ -54,11 +54,19 @@ from cross_ai_core.ai_handler import (   # noqa: F401
 from cross_ai_core.aliases import (   # noqa: F401
     AliasSpec,
     did_you_mean,
+    get_agents,
     get_alias_load_error,
     get_aliases,
     get_rate_limit_group,
+    migrate_v1_to_v2,
     reload_aliases,
     resolve_alias,
+    write_agents_file,
+)
+from cross_ai_core.keys import (   # noqa: F401
+    PROVIDER_API_KEY_ENV,
+    api_key_env_var,
+    has_api_key,
 )
 from cross_ai_core.discovery import (   # noqa: F401
     MODELS_CACHE_TTL_SECONDS,
@@ -111,14 +119,21 @@ __all__ = [
     "AI_LIST",
     "AIResponse",
     "reset_client_cache",
-    # Aliases (CAC-10)
+    # Aliases (CAC-10) / Agents (AGT-1)
     "AliasSpec",
     "resolve_alias",
     "get_aliases",
+    "get_agents",
     "get_alias_load_error",
     "did_you_mean",
     "get_rate_limit_group",
     "reload_aliases",
+    "migrate_v1_to_v2",
+    "write_agents_file",
+    # API-key detection (AGT-1c)
+    "PROVIDER_API_KEY_ENV",
+    "api_key_env_var",
+    "has_api_key",
     # Model discovery (CAC-10h)
     "ModelInfo",
     "get_available_models",
