@@ -155,7 +155,9 @@ See the [API reference](api-reference.md#parallel-calls) for a two-provider exam
 | `OPENAI_API_KEY` | OpenAI |
 | `PERPLEXITY_API_KEY` | Perplexity |
 | `GEMINI_API_KEY` | Google Gemini |
-| `DEFAULT_AI` | Which provider `get_default_ai()` returns |
+| `DEFAULT_AGENT` | Which agent `get_default_ai()` returns (set by `st-admin > AI > d`) |
+| `DEFAULT_AI` | Legacy pre-Agents-v2 spelling of `DEFAULT_AGENT`; still read for back-compat |
+| `CROSS_AI_AGENTS_FILE` | Override default `~/.cross_ai_models.json` agent registry path |
 | `CROSS_API_CACHE_DIR` | Override default `~/.cross_api_cache/` directory |
 | `CROSS_NO_CACHE` | Set to `1` to disable caching globally |
 

@@ -47,29 +47,52 @@ The three provider SDKs are optional extras; pip installs only what you request.
 
 ## Quick start
 
+Calls are dispatched through **agents** — named `(provider, model)` pairs.  See the [cross-st Agents wiki page](https://github.com/b202i/cross-st/wiki/Agents) for the full concept; the minimal version is one JSON file at `~/.cross_ai_models.json`:
+
+```json
+{
+  "version": 2,
+  "agents": {
+    "xai":       {"make": "xai",       "model": null},
+    "anthropic": {"make": "anthropic", "model": null}
+  }
+}
+```
+
+If you also use [`cross-st`](https://github.com/b202i/cross-st), running `st-admin --setup` once will detect every API key in `~/.crossenv` and seed one starter agent per provider for you.  Standalone users can write the file by hand or set `CROSS_AI_AGENTS_FILE=/path/to/file.json` to point at an alternative.
+
 ```python
 import os
 from dotenv import load_dotenv
 load_dotenv(os.path.expanduser("~/.crossenv"))  # your app loads keys; the library reads os.environ
 
-from cross_ai_core import process_prompt, get_content, get_default_ai
+from cross_ai_core import process_prompt, get_content_auto, get_default_ai
 
-provider = get_default_ai()         # reads DEFAULT_AI from env, falls back to "xai"
-result   = process_prompt(
-    provider,
+agent  = get_default_ai()           # DEFAULT_AGENT env var, then DEFAULT_AI (legacy),
+                                    # then first agent in ~/.cross_ai_models.json
+result = process_prompt(
+    agent,
     "Explain transformer attention in 3 sentences.",
     system="You are a concise technical writer.",   # omit to use each provider's default
     verbose=False,
     use_cache=True,
 )
-print(get_content(provider, result.response))
+print(get_content_auto(result.response))            # auto-dispatches via the _make stamp
 ```
+
+> **Breaking change in 0.8.0:** built-in provider names are no longer auto-registered as self-agents.  `process_prompt("xai", …)` raises `ValueError: Unsupported AI model: 'xai'. No agents defined.` if the registry is empty.  Define at least one agent (above) before the first call.
+
+For older callers, `get_content(agent, result.response)` still works (it alias-resolves the agent → provider make internally).
 
 ## Configuration (environment variables)
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `DEFAULT_AI` | `xai` | Default provider when none is specified |
+| `DEFAULT_AGENT` | *(first agent in registry)* | Default agent when none is specified (set by `st-admin > AI > d` in cross-st 0.10+) |
+| `DEFAULT_AI` | — | Legacy pre-Agents-v2 spelling of `DEFAULT_AGENT`; still read for back-compat |
+| `CROSS_AI_AGENTS_FILE` | `~/.cross_ai_models.json` | Path to the agent registry JSON |
+| `<AGENT_UPPER>_MODEL` | — | Per-agent model override (e.g. `ANTHROPIC_OPUS_MODEL=claude-opus-future`) |
+| `<MAKE_UPPER>_MODEL` | — | Per-provider model override (e.g. `ANTHROPIC_MODEL=claude-3-5-haiku-latest`) |
 | `XAI_API_KEY` | — | xAI / Grok API key |
 | `ANTHROPIC_API_KEY` | — | Anthropic / Claude API key |
 | `OPENAI_API_KEY` | — | OpenAI API key |
@@ -77,6 +100,7 @@ print(get_content(provider, result.response))
 | `PERPLEXITY_API_KEY` | — | Perplexity API key |
 | `CROSS_API_CACHE_DIR` | `~/.cross_api_cache/` | Response cache directory |
 | `CROSS_NO_CACHE` | — | Set to `1` to disable caching globally |
+| `CROSS_NO_CLIENT_CACHE` | — | Set to `1` to disable per-provider client singleton caching |
 
 The library only reads from `os.environ` — it never calls `load_dotenv()` itself.  
 Load your `.env` or `~/.crossenv` before importing.  

@@ -195,9 +195,11 @@ def process_prompt(
         ValueError: For an unknown *ai_key*.
         Exception:  Re-raises any exception after graceful error handling.
     """
-    # CAC-10: resolve alias → (make, alias_default_model).  Legacy callers
-    # passing a make string still work because every built-in make is
-    # auto-registered as a self-alias with model=None.
+    # CAC-10 / AGT-1: resolve agent → (make, agent_default_model).
+    # Post-0.8.0 there is no auto-seed of built-in makes — callers that
+    # pass a bare provider name (e.g. "xai") must have a matching entry
+    # in the agent registry.  resolve_agent raises ValueError with a
+    # helpful "run st-admin --setup" hint when the registry is empty.
     from .agents import resolve_agent
     spec = resolve_agent(ai_key)
     make = spec.make

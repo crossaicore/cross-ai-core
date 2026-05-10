@@ -156,19 +156,25 @@ provider or field is absent.
 ### `get_default_ai`
 
 ```python
-def get_default_ai() -> str
+def get_default_ai() -> str | None
 ```
 
-Returns the provider key to use when no explicit provider is given.
+Returns the user-configured default agent name.
 
-Resolution order:
-1. `DEFAULT_AI` environment variable — if set and a known provider
-2. First entry in `AI_LIST` (currently `"xai"`)
+Resolution order (post-AGT-1, cross-ai-core 0.8.0+):
+1. `DEFAULT_AGENT` environment variable — if set and present in the agent registry
+2. `DEFAULT_AI` environment variable — legacy back-compat for the same purpose
+3. First entry in the agent registry (`~/.cross_ai_models.json`)
+4. `None` if no agents are defined
 
 ```python
-provider = get_default_ai()   # reads DEFAULT_AI from env, falls back to "xai"
-result = process_prompt(provider, prompt)
+agent = get_default_ai()      # DEFAULT_AGENT, then DEFAULT_AI, then first agent
+if agent is None:
+    raise SystemExit("No agents defined — run 'st-admin --setup' or write ~/.cross_ai_models.json by hand")
+result = process_prompt(agent, prompt)
 ```
+
+> The pre-0.8.0 fallback to a hardcoded `"xai"` was removed when auto-seeding of built-in makes ended.  Callers that need a guaranteed default should seed the registry up front.
 
 ---
 
