@@ -25,7 +25,7 @@ pip install "cross-ai-core[xai]"         # xAI Grok  (uses the OpenAI SDK)
 pip install cross-ai-core                # Perplexity only (uses requests, no extra SDK)
 ```
 
-Install all providers at once (used by [cross-st](https://github.com/b202i/cross-st), which runs all 5 simultaneously):
+Install all providers at once (used by [cross-st](https://github.com/crossaicore/cross-st), which runs all 5 simultaneously):
 
 ```bash
 pip install "cross-ai-core[all]"
@@ -47,7 +47,7 @@ The three provider SDKs are optional extras; pip installs only what you request.
 
 ## Quick start
 
-Calls are dispatched through **agents** — named `(provider, model)` pairs.  See the [cross-st Agents wiki page](https://github.com/b202i/cross-st/wiki/Agents) for the full concept; the minimal version is one JSON file at `~/.cross_ai_models.json`:
+Calls are dispatched through **agents** — named `(provider, model)` pairs.  See the [cross-st Agents wiki page](https://github.com/crossaicore/cross-st/wiki/Agents) for the full concept; the minimal version is one JSON file at `~/.cross_ai_models.json`:
 
 ```json
 {
@@ -59,7 +59,7 @@ Calls are dispatched through **agents** — named `(provider, model)` pairs.  Se
 }
 ```
 
-If you also use [`cross-st`](https://github.com/b202i/cross-st), running `st-admin --setup` once will detect every API key in `~/.crossenv` and seed one starter agent per provider for you.  Standalone users can write the file by hand or set `CROSS_AI_AGENTS_FILE=/path/to/file.json` to point at an alternative.
+If you also use [`cross-st`](https://github.com/crossaicore/cross-st), running `st-admin --setup` once will detect every API key in `~/.crossenv` and seed one starter agent per provider for you.  Standalone users can write the file by hand or set `CROSS_AI_AGENTS_FILE=/path/to/file.json` to point at an alternative.
 
 ```python
 import os
@@ -159,6 +159,16 @@ Tests use mocks — no real API keys required.
 | **cross-st** | [`cross-st`](https://pypi.org/project/cross-st/) | Multi-AI research reports with cross-product fact-checking. Installs this package automatically via `cross-ai-core[all]`. Full CLI toolkit — `pipx install cross-st`. |
 
 > Building something with `cross-ai-core`? Open a PR or issue to get listed here.
+
+## Community & support
+
+Questions, ideas, bug reports, or just want to share what you're building?
+
+- 💬 **[crossai.dev community forum](https://crossai.dev/)** — Discourse-powered discussion for `cross-ai-core`, `cross-st`, and the wider Cross family. Ask questions, share prompts, or compare provider results. Invite-only sign-up keeps it friction-free for real users; see the `cross-st` wiki for the one-command onboarding (`st-admin --discourse-setup`).
+- 🐛 **[GitHub issues](https://github.com/crossaicore/cross-ai-core/issues)** — bug reports and feature requests.
+- 🎬 **[YouTube @crossaicore](https://www.youtube.com/@crossaicore)** — walkthroughs and release notes.
+
+Tagline: *AI reports. Cross-examined.*
 
 ## License
 
