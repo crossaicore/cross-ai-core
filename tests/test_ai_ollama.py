@@ -24,6 +24,7 @@ from cross_ai_core.ai_ollama import (
     get_ollama_client,
     get_ollama_payload,
     _get_request_timeout,
+    _get_health_check_timeout,
 )
 
 
@@ -63,6 +64,20 @@ class TestRequestTimeout:
     def test_non_numeric_falls_back(self, monkeypatch):
         monkeypatch.setenv("OLLAMA_REQUEST_TIMEOUT", "soon")
         assert _get_request_timeout() == 120
+
+
+class TestHealthCheckTimeout:
+    def test_default(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_HEALTH_CHECK_TIMEOUT", raising=False)
+        assert _get_health_check_timeout() == 5
+
+    def test_env_override(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_HEALTH_CHECK_TIMEOUT", "10")
+        assert _get_health_check_timeout() == 10
+
+    def test_non_numeric_falls_back(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_HEALTH_CHECK_TIMEOUT", "quick")
+        assert _get_health_check_timeout() == 5
 
 
 # ── Payload ────────────────────────────────────────────────────────────────────
@@ -173,6 +188,71 @@ class TestCallApi:
         client.post.return_value = resp
         with pytest.raises(RuntimeError, match="model 'nope' not found"):
             OllamaHandler._call_api(client, {"prompt": "x"})
+
+
+# ── Connectivity / discovery (OLL-3) ─────────────────────────────────────────
+
+class TestConnectivity:
+    def _patch_client(self, monkeypatch, *, json_payload=None, raise_exc=None):
+        client = MagicMock()
+        if raise_exc is not None:
+            client.get.side_effect = raise_exc
+        else:
+            resp = MagicMock()
+            resp.json.return_value = json_payload or {}
+            resp.raise_for_status.return_value = None
+            client.get.return_value = resp
+        monkeypatch.setattr(ai_ollama, "get_ollama_client", lambda: client)
+        return client
+
+    def test_health_check_true(self, monkeypatch):
+        self._patch_client(monkeypatch, json_payload={"models": []})
+        assert OllamaHandler.health_check() is True
+
+    def test_health_check_false_on_connection_error(self, monkeypatch):
+        self._patch_client(monkeypatch, raise_exc=requests.ConnectionError("x"))
+        assert OllamaHandler.health_check() is False
+
+    def test_health_check_false_on_timeout(self, monkeypatch):
+        self._patch_client(monkeypatch, raise_exc=requests.Timeout("x"))
+        assert OllamaHandler.health_check() is False
+
+    def test_require_healthy_raises_when_down(self, monkeypatch):
+        self._patch_client(monkeypatch, raise_exc=requests.ConnectionError("x"))
+        with pytest.raises(ConnectionError, match="Cannot reach Ollama"):
+            OllamaHandler.require_healthy()
+
+    def test_require_healthy_ok_when_up(self, monkeypatch):
+        self._patch_client(monkeypatch, json_payload={"models": []})
+        OllamaHandler.require_healthy()  # must not raise
+
+    def test_list_models_returns_names(self, monkeypatch):
+        self._patch_client(monkeypatch, json_payload={
+            "models": [{"name": "llama3.1:latest"}, {"name": "mistral:latest"}]
+        })
+        assert OllamaHandler.list_models() == ["llama3.1:latest", "mistral:latest"]
+
+    def test_list_models_empty_on_error(self, monkeypatch):
+        self._patch_client(monkeypatch, raise_exc=requests.ConnectionError("x"))
+        assert OllamaHandler.list_models() == []
+
+    def test_list_models_skips_nameless_entries(self, monkeypatch):
+        self._patch_client(monkeypatch, json_payload={
+            "models": [{"name": "a:latest"}, {"size": 1}]
+        })
+        assert OllamaHandler.list_models() == ["a:latest"]
+
+    def test_probe_uses_health_check_timeout(self, monkeypatch):
+        client = self._patch_client(monkeypatch, json_payload={"models": []})
+        monkeypatch.setenv("OLLAMA_HEALTH_CHECK_TIMEOUT", "7")
+        OllamaHandler.health_check()
+        assert client.get.call_args.kwargs["timeout"] == 7
+
+    def test_probe_hits_tags_endpoint(self, monkeypatch):
+        client = self._patch_client(monkeypatch, json_payload={"models": []})
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://mac-studio.local:11434")
+        OllamaHandler.list_models()
+        assert client.get.call_args.args[0] == "http://mac-studio.local:11434/api/tags"
 
 
 # ── Registration (OLL-2) ────────────────────────────────────────────────────────

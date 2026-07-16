@@ -19,8 +19,17 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   for reverse-proxied setups), `OLLAMA_REQUEST_TIMEOUT` (default 120 s).
   Network failures map to `ConnectionError` / `TimeoutError` / `RuntimeError`
   with actionable messages.  `get_usage()` returns real token counts from
-  Ollama's `prompt_eval_count` / `eval_count`.  26 new tests
-  (`tests/test_ai_ollama.py`, all HTTP mocked — no daemon needed in CI).
+  Ollama's `prompt_eval_count` / `eval_count`.
+- **Ollama connectivity + discovery helpers (OLL-3, Phase 2).**
+  `OllamaHandler.health_check()` (bool, never raises), `require_healthy()`
+  (raises `ConnectionError` with a hint), and `list_models()` (installed
+  model tags from `/api/tags`, `[]` on failure — feeds st-admin discovery).
+  New `OLLAMA_HEALTH_CHECK_TIMEOUT` env var (default 5 s) for a fail-fast
+  connectivity probe.  AGENTS.md gains an "Ollama (local/LAN provider)"
+  section including remote-host setup (`OLLAMA_HOST=0.0.0.0`, firewall,
+  mDNS `.local`) and troubleshooting.
+- 38 tests total for the provider (`tests/test_ai_ollama.py`, all HTTP
+  mocked — no daemon needed in CI).
 
 ### Notes
 - Ollama is the first **keyless** provider, so it is intentionally absent
@@ -28,7 +37,6 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   keyed providers only.
 - Ollama has **no** compiled-in `get_rate_limit_concurrency()` default yet —
   that (and the `OLLAMA_MAX_CONCURRENCY` override) lands in OLL-4 (Phase 4.1).
-  The init-time health check + LAN docs land in OLL-3.
 - Version bump / release wiring is deferred to OLL-5.
 
 ---

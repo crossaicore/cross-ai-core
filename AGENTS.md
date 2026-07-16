@@ -17,6 +17,7 @@ cross_ai_core/
   ai_openai.py         ← OpenAI provider
   ai_gemini.py         ← Google Gemini provider
   ai_perplexity.py     ← Perplexity provider
+  ai_ollama.py         ← Ollama local/LAN provider (keyless; OLL-series)
 pyproject.toml
 README.md
 ```
@@ -37,6 +38,81 @@ for loading keys into `os.environ` before importing. The library only reads env 
 2. Import `_get_cache_dir` from `.ai_base` for the cache directory
 3. Register in `ai_handler.py`: add to `AI_HANDLER_REGISTRY` and `AI_LIST`
 4. Bump version in `pyproject.toml`
+
+## Ollama (local/LAN provider)
+
+`ai_ollama.py` is the first **local** and first **keyless** provider. It talks to
+an Ollama daemon over HTTP (`POST /api/generate`, non-streaming) instead of a
+cloud API, so all inference stays on the user's own machine or LAN. Because
+there is no API key, `ollama` is intentionally **absent** from
+`keys.PROVIDER_API_KEY_ENV` — `check_api_key("ollama")` short-circuits to `True`,
+and any consumer that filters by `has_api_key()` must treat `ollama` as
+always-available (it will raise `ValueError` if you call `has_api_key("ollama")`
+directly — whitelist it).
+
+### Configuration (env vars)
+
+| Var | Default | Purpose |
+|---|---|---|
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Daemon location — local or a LAN host |
+| `OLLAMA_MODEL` | `llama3.1` | Default model (resolved via the generic `<MAKE>_MODEL` path) |
+| `OLLAMA_API_TOKEN` | *(empty)* | Optional `Authorization: Bearer` token for reverse-proxied daemons |
+| `OLLAMA_REQUEST_TIMEOUT` | `120` | Generation request timeout, seconds |
+| `OLLAMA_HEALTH_CHECK_TIMEOUT` | `5` | Connectivity/discovery probe timeout, seconds (fail fast) |
+
+### Connectivity helpers (OLL-3)
+
+The handler is all-classmethod (the registry stores the class, not an instance),
+so there is no `__init__` to run a health check "on init". Instead these
+classmethods hit `/api/tags` on demand — the st-admin agent wizard, tests, and
+troubleshooting flows call them explicitly:
+
+- `OllamaHandler.health_check() -> bool` — reachable? never raises.
+- `OllamaHandler.require_healthy()` — raises `ConnectionError` with a hint if down.
+- `OllamaHandler.list_models() -> list[str]` — installed model tags (`[]` on failure).
+
+The generation path (`_call_api`) already **fails fast** with actionable
+messages (`ConnectionError` / `TimeoutError` / `RuntimeError`) rather than
+retrying forever, so no implicit per-call probe is added.
+
+### Remote Ollama (LAN)
+
+To use a daemon on another machine (e.g. a Mac Studio serving models to a
+laptop), point `OLLAMA_BASE_URL` at it:
+
+```bash
+# ~/.crossenv
+OLLAMA_BASE_URL=http://mac-studio.local:11434
+OLLAMA_MODEL=llama3.1
+OLLAMA_REQUEST_TIMEOUT=120
+OLLAMA_HEALTH_CHECK_TIMEOUT=10   # a little more slack over the LAN
+```
+
+**Prerequisites on the remote host:**
+
+1. **Bind to all interfaces.** By default `ollama serve` listens on
+   `127.0.0.1` only. Start it with `OLLAMA_HOST=0.0.0.0:11434 ollama serve` (or
+   set `OLLAMA_HOST` in the host's launch environment) so LAN clients can reach
+   it.
+2. **Firewall.** Allow inbound TCP on port `11434` on the host.
+3. **Hostname resolution.** macOS resolves `<name>.local` via mDNS/Bonjour on the
+   same subnet; otherwise use the host's static IP (`http://192.168.1.x:11434`).
+4. **Models.** The daemon serves only models that have been pulled on the host
+   (`ollama pull llama3.1`); a daemon can be up with zero models.
+
+**Troubleshooting:**
+
+```bash
+ping -c2 mac-studio.local                       # DNS / reachability
+curl -s http://mac-studio.local:11434/api/tags  # daemon up + installed models
+```
+
+If `curl` hangs or refuses: the daemon is bound to localhost only, the firewall
+is blocking 11434, or the hostname doesn't resolve. `OllamaHandler.health_check()`
+returns `False` in all of these cases; `require_healthy()` raises with the hint.
+
+Concurrency is **hardware-bound** (host RAM/VRAM), not network-bound — the
+per-provider cap and `OLLAMA_MAX_CONCURRENCY` override land in OLL-4.
 
 ## Development setup
 
