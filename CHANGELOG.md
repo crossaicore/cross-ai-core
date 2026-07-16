@@ -28,15 +28,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   connectivity probe.  AGENTS.md gains an "Ollama (local/LAN provider)"
   section including remote-host setup (`OLLAMA_HOST=0.0.0.0`, firewall,
   mDNS `.local`) and troubleshooting.
-- 38 tests total for the provider (`tests/test_ai_ollama.py`, all HTTP
-  mocked — no daemon needed in CI).
+- **Ollama concurrency cap (OLL-4, Phase 4.1).**
+  `get_rate_limit_concurrency("ollama")` now returns a conservative
+  hardware-bound default of **2**, tunable per-machine via the new
+  `OLLAMA_MAX_CONCURRENCY` env var (empty / non-numeric / non-positive
+  values fall back to the default; the override never affects other makes).
+- 43 tests total for the provider + concurrency (`tests/test_ai_ollama.py`
+  and the Ollama cases in `tests/test_ai_handler.py`, all HTTP mocked — no
+  daemon needed in CI).
 
 ### Notes
 - Ollama is the first **keyless** provider, so it is intentionally absent
   from `PROVIDER_API_KEY_ENV`; the API-key coverage invariants now scope to
   keyed providers only.
-- Ollama has **no** compiled-in `get_rate_limit_concurrency()` default yet —
-  that (and the `OLLAMA_MAX_CONCURRENCY` override) lands in OLL-4 (Phase 4.1).
 - Version bump / release wiring is deferred to OLL-5.
 
 ---

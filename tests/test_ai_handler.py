@@ -471,9 +471,7 @@ class TestGetRateLimitConcurrency:
 
     def test_known_providers_return_int(self):
         from cross_ai_core.ai_handler import get_rate_limit_concurrency, AI_LIST
-        # ollama's cap is added in OLL-4 (Phase 4.1) — until then it has no
-        # compiled-in default and get_rate_limit_concurrency raises KeyError.
-        for make in (m for m in AI_LIST if m != "ollama"):
+        for make in AI_LIST:
             result = get_rate_limit_concurrency(make)
             assert isinstance(result, int) and result > 0, f"{make} should return positive int"
 
@@ -501,6 +499,37 @@ class TestGetRateLimitConcurrency:
         """Gemini allows more concurrency than Anthropic by default."""
         from cross_ai_core.ai_handler import get_rate_limit_concurrency
         assert get_rate_limit_concurrency("gemini") > get_rate_limit_concurrency("anthropic")
+
+
+class TestOllamaConcurrency:
+    """OLL-4 — ollama cap is hardware-bound and OLLAMA_MAX_CONCURRENCY-tunable."""
+
+    def test_default_is_two(self, monkeypatch):
+        monkeypatch.delenv("OLLAMA_MAX_CONCURRENCY", raising=False)
+        from cross_ai_core.ai_handler import get_rate_limit_concurrency
+        assert get_rate_limit_concurrency("ollama") == 2
+
+    def test_env_override(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_MAX_CONCURRENCY", "6")
+        from cross_ai_core.ai_handler import get_rate_limit_concurrency
+        assert get_rate_limit_concurrency("ollama") == 6
+
+    def test_non_numeric_env_falls_back(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_MAX_CONCURRENCY", "lots")
+        from cross_ai_core.ai_handler import get_rate_limit_concurrency
+        assert get_rate_limit_concurrency("ollama") == 2
+
+    def test_non_positive_env_falls_back(self, monkeypatch):
+        from cross_ai_core.ai_handler import get_rate_limit_concurrency
+        monkeypatch.setenv("OLLAMA_MAX_CONCURRENCY", "0")
+        assert get_rate_limit_concurrency("ollama") == 2
+        monkeypatch.setenv("OLLAMA_MAX_CONCURRENCY", "-3")
+        assert get_rate_limit_concurrency("ollama") == 2
+
+    def test_ollama_does_not_leak_override_to_other_makes(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_MAX_CONCURRENCY", "9")
+        from cross_ai_core.ai_handler import get_rate_limit_concurrency
+        assert get_rate_limit_concurrency("gemini") == 5  # unaffected
 
 
 # ── CAC-6: AIResponse.__repr__ ────────────────────────────────────────────────

@@ -80,6 +80,10 @@ _RATE_LIMIT_CONCURRENCY: dict[str, int] = {
     "openai":     3,
     "perplexity": 2,
     "gemini":     5,
+    # Ollama is local/LAN: concurrency is bound by the host's RAM/VRAM, not a
+    # provider rate limit.  Conservative default for typical home hardware;
+    # override per-machine with OLLAMA_MAX_CONCURRENCY (see below).
+    "ollama":     2,
 }
 
 
@@ -382,6 +386,19 @@ def get_rate_limit_concurrency(make: str) -> int:
     Raises:
         KeyError: if *make* is not a registered provider.
     """
+    if make == "ollama":
+        # Hardware-bound, not provider-bound — let the user tune it for their
+        # box (or their LAN Ollama host).  Falls back to the compiled default
+        # for empty / non-numeric / non-positive values.
+        raw = os.environ.get("OLLAMA_MAX_CONCURRENCY", "").strip()
+        if raw:
+            try:
+                val = int(raw)
+                if val > 0:
+                    return val
+            except ValueError:
+                pass
+        return _RATE_LIMIT_CONCURRENCY["ollama"]
     try:
         return _RATE_LIMIT_CONCURRENCY[make]
     except KeyError:
