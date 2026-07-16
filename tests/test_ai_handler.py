@@ -370,6 +370,30 @@ class TestContentAutoWrappers:
         with pytest.raises(ValueError, match="_make"):
             put_content_auto("report", {"_make": "", "data": "raw"})
 
+    def test_get_content_auto_dispatches_via_raw_make_without_agent(self):
+        """Regression (OLL): the stamped ``_make`` is a raw provider make, not
+        an agent name.  Ollama's make ``"ollama"`` maps to user-named agents
+        like ``"ollama-qwen"``, so ``get_content_auto`` must dispatch on the
+        make directly and must NOT force agent resolution (which would raise
+        ``ValueError`` for a bare make with no self-agent).
+
+        The session conftest seeds every make as a self-agent, masking the bug,
+        so we explicitly drop the make from ``_AGENTS`` here to reproduce the
+        real Agents-v2 state.
+        """
+        from cross_ai_core.agents import _AGENTS
+
+        mock_cls = MagicMock()
+        mock_cls.get_content.return_value = "local text"
+        response = {"_make": "ollama", "data": "raw"}
+        with patch.dict(AI_HANDLER_REGISTRY, {"ollama": mock_cls}), \
+             patch.dict(_AGENTS, {}, clear=False):
+            _AGENTS.pop("ollama", None)          # make is real, but no "ollama" agent
+            assert "ollama" not in _AGENTS
+            result = get_content_auto(response)
+        assert result == "local text"
+        mock_cls.get_content.assert_called_once_with(response)
+
 
 # ── process_prompt model parameter ────────────────────────────────────────────
 

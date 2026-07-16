@@ -269,9 +269,27 @@ def process_prompt(
         raise
 
 
-def get_data_title(ai_key: str, data: dict):
+def _make_for(ai_key: str) -> str:
+    """Resolve *ai_key* to a provider make.
+
+    Accepts **either** an agent name (resolved via the agents registry) **or**
+    a raw provider make already present in ``AI_HANDLER_REGISTRY`` — e.g. the
+    ``_make`` string stamped onto every response by ``process_prompt`` and read
+    back by ``get_content_auto`` / ``put_content_auto``.
+
+    A raw make is not necessarily a defined agent: Ollama's make ``"ollama"``
+    maps to user-named agents like ``"ollama-qwen"``, so the stamped make must
+    dispatch directly to the handler registry rather than being forced through
+    agent resolution (which would raise ``ValueError`` for a bare make).
+    """
+    if ai_key in AI_HANDLER_REGISTRY:
+        return ai_key
     from .agents import resolve_agent
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
+    return resolve_agent(ai_key).make
+
+
+def get_data_title(ai_key: str, data: dict):
+    handler_cls = AI_HANDLER_REGISTRY.get(_make_for(ai_key))
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     title = handler_cls.get_title(data)
@@ -279,16 +297,14 @@ def get_data_title(ai_key: str, data: dict):
 
 
 def get_content(ai_key, response):
-    from .agents import resolve_agent
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
+    handler_cls = AI_HANDLER_REGISTRY.get(_make_for(ai_key))
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     return handler_cls.get_content(response)
 
 
 def put_content(ai_key, report, response):
-    from .agents import resolve_agent
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
+    handler_cls = AI_HANDLER_REGISTRY.get(_make_for(ai_key))
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     return handler_cls.put_content(report, response)
@@ -337,8 +353,7 @@ def put_content_auto(report: str, response: dict) -> dict:
 
 
 def get_data_content(ai_key, select_data):
-    from .agents import resolve_agent
-    handler_cls = AI_HANDLER_REGISTRY.get(resolve_agent(ai_key).make)
+    handler_cls = AI_HANDLER_REGISTRY.get(_make_for(ai_key))
     if not handler_cls:
         raise ValueError(f"Unsupported AI model: {ai_key}")
     content = handler_cls.get_data_content(select_data)
@@ -422,9 +437,8 @@ def get_usage(ai_key: str, response: dict) -> dict:
             total_tokens  (int) — sum of the above (computed if absent)
         All values default to 0 if the field is missing.
     """
-    from .agents import resolve_agent
     try:
-        make = resolve_agent(ai_key).make
+        make = _make_for(ai_key)
     except ValueError:
         return {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
     handler_cls = AI_HANDLER_REGISTRY.get(make)
