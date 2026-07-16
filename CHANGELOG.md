@@ -6,7 +6,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased]
+## [0.10.0] — 2026-07-16  *(Ollama local/LAN provider)*
+
+Additive, fully backward-compatible minor release. Adds Ollama as the first
+**local** and first **keyless** provider. Nothing in the existing public API
+changes; the AGT-9 `aliases.py` deprecation shim is **still present** (its
+removal moves to 0.11.0 so this additive feature stays decoupled from that
+breaking cleanup).
 
 ### Added
 - **Ollama local/LAN provider (OLL-1 / OLL-2, Phase 1).** New
@@ -41,7 +47,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - Ollama is the first **keyless** provider, so it is intentionally absent
   from `PROVIDER_API_KEY_ENV`; the API-key coverage invariants now scope to
   keyed providers only.
-- Version bump / release wiring is deferred to OLL-5.
+- Downstream (`cross-st`) enablement — `st-admin` agent discovery, `st.py`
+  rotation, `st-cross` parallel matrix — is tracked separately as the
+  OLL-CST series and targets a dedicated cross-st cut.
 
 ---
 
