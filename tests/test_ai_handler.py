@@ -41,7 +41,12 @@ from cross_ai_core.ai_handler import (
 # ── Registry / list completeness ───────────────────────────────────────────────
 
 class TestRegistryCompleteness:
-    EXPECTED = {"xai", "anthropic", "openai", "perplexity", "gemini"}
+    # OLL-2: ollama is the first local/LAN provider — registered like the
+    # cloud makes but keyless (see KEYED below).
+    EXPECTED = {"xai", "anthropic", "openai", "perplexity", "gemini", "ollama"}
+    # Providers that require an API key.  ollama runs on a trusted network and
+    # has no key, so it is deliberately absent from _API_KEY_ENV_VARS.
+    KEYED = EXPECTED - {"ollama"}
 
     def test_ai_list_contains_all_providers(self):
         assert set(AI_LIST) == self.EXPECTED
@@ -54,7 +59,8 @@ class TestRegistryCompleteness:
             assert isinstance(cls, type), f"{name} handler should be a class"
 
     def test_api_key_env_vars_covers_all_providers(self):
-        assert set(_API_KEY_ENV_VARS.keys()) == self.EXPECTED
+        # Keyless providers (ollama) are excluded from the key-env map.
+        assert set(_API_KEY_ENV_VARS.keys()) == self.KEYED
 
 
 # ── get_default_ai ─────────────────────────────────────────────────────────────
@@ -102,7 +108,7 @@ class TestGetAiList:
     def test_order_is_deterministic(self):
         """AI_LIST order is fixed — st-cross relies on it for the NN display matrix."""
         from cross_ai_core.ai_handler import get_ai_make_list
-        assert get_ai_make_list() == ["xai", "anthropic", "openai", "perplexity", "gemini"]
+        assert get_ai_make_list() == ["xai", "anthropic", "openai", "perplexity", "gemini", "ollama"]
 
     def test_returns_copy_not_live_reference(self):
         """Mutating the returned list must not affect subsequent calls."""
@@ -465,7 +471,9 @@ class TestGetRateLimitConcurrency:
 
     def test_known_providers_return_int(self):
         from cross_ai_core.ai_handler import get_rate_limit_concurrency, AI_LIST
-        for make in AI_LIST:
+        # ollama's cap is added in OLL-4 (Phase 4.1) — until then it has no
+        # compiled-in default and get_rate_limit_concurrency raises KeyError.
+        for make in (m for m in AI_LIST if m != "ollama"):
             result = get_rate_limit_concurrency(make)
             assert isinstance(result, int) and result > 0, f"{make} should return positive int"
 

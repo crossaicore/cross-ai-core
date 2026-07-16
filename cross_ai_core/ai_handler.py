@@ -4,6 +4,7 @@ from typing import Any, Callable
 
 from .ai_anthropic import AnthropicHandler
 from .ai_gemini import GeminiHandler
+from .ai_ollama import OllamaHandler
 from .ai_openai import OpenAIHandler
 from .ai_perplexity import PerplexityHandler
 from .ai_xai import XAIHandler
@@ -65,9 +66,10 @@ AI_HANDLER_REGISTRY = {
     "openai": OpenAIHandler,
     "perplexity": PerplexityHandler,
     "gemini": GeminiHandler,
+    "ollama": OllamaHandler,   # OLL-2: local/LAN provider (no API key)
 }
 
-AI_LIST = ["xai", "anthropic", "openai", "perplexity", "gemini"]
+AI_LIST = ["xai", "anthropic", "openai", "perplexity", "gemini", "ollama"]
 
 # Per-provider default semaphore sizes for concurrent callers (e.g. PAR-1 in st-cross).
 # Values are conservative starting points based on free/starter tier rate limits.

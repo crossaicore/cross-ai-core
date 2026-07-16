@@ -270,10 +270,16 @@ class TestWriteAgentsFile:
 
 class TestKeysModule:
     def test_provider_env_var_map_covers_all_built_ins(self):
-        for make in AI_LIST:
+        # ollama is keyless (local/LAN, trusted network) so it is intentionally
+        # absent from PROVIDER_API_KEY_ENV — every *keyed* make must be present.
+        for make in (m for m in AI_LIST if m != "ollama"):
             assert make in PROVIDER_API_KEY_ENV
             assert isinstance(PROVIDER_API_KEY_ENV[make], tuple)
             assert len(PROVIDER_API_KEY_ENV[make]) >= 1
+
+    def test_ollama_is_keyless(self):
+        # OLL-2: ollama needs no API key, so it must NOT appear in the env map.
+        assert "ollama" not in PROVIDER_API_KEY_ENV
 
     def test_has_api_key_true_when_set(self, monkeypatch):
         monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")

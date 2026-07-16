@@ -6,6 +6,33 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Ollama local/LAN provider (OLL-1 / OLL-2, Phase 1).** New
+  `cross_ai_core/ai_ollama.py` implements `OllamaHandler(BaseAIHandler)`
+  talking to the Ollama HTTP API (`POST /api/generate`, non-streaming).
+  Registered in `AI_HANDLER_REGISTRY` and appended to `AI_LIST` as
+  `"ollama"`.  Configured entirely via env vars (no API key on a trusted
+  network): `OLLAMA_BASE_URL` (default `http://localhost:11434`),
+  `OLLAMA_MODEL` (default `llama3.1`), `OLLAMA_API_TOKEN` (optional bearer
+  for reverse-proxied setups), `OLLAMA_REQUEST_TIMEOUT` (default 120 s).
+  Network failures map to `ConnectionError` / `TimeoutError` / `RuntimeError`
+  with actionable messages.  `get_usage()` returns real token counts from
+  Ollama's `prompt_eval_count` / `eval_count`.  26 new tests
+  (`tests/test_ai_ollama.py`, all HTTP mocked — no daemon needed in CI).
+
+### Notes
+- Ollama is the first **keyless** provider, so it is intentionally absent
+  from `PROVIDER_API_KEY_ENV`; the API-key coverage invariants now scope to
+  keyed providers only.
+- Ollama has **no** compiled-in `get_rate_limit_concurrency()` default yet —
+  that (and the `OLLAMA_MAX_CONCURRENCY` override) lands in OLL-4 (Phase 4.1).
+  The init-time health check + LAN docs land in OLL-3.
+- Version bump / release wiring is deferred to OLL-5.
+
+---
+
 ## [0.9.0] — 2026-05-10  *(AGT-9 alias → agent cleanup)*
 
 Cleanup-only release that completes the rename started by Agents v2 in
