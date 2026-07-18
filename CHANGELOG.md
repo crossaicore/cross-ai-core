@@ -6,6 +6,31 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.11.0] — 2026-07-18  *(AGT-9 shim removal)*
+
+Cleanup-only release. Completes the AGT-9 alias → agent rename by removing the
+one-release deprecation **module** shim that was carried through 0.9.0 and
+0.10.0. No functional change to the agent API; the canonical
+`cross_ai_core.agents` module is unaffected.
+
+### Removed
+- **`cross_ai_core.aliases` module shim** (deprecated since 0.9.0). Import it and
+  you now get `ModuleNotFoundError`. Migrate to `cross_ai_core.agents` — e.g.
+  `from cross_ai_core.agents import resolve_agent` — or import the public names
+  directly from the top-level `cross_ai_core` package.
+
+### Notes
+- The legacy `CROSS_AI_ALIASES_FILE` environment variable remains **ignored**
+  for path resolution (use `CROSS_AI_AGENTS_FILE`); setting it still emits a
+  one-time `DeprecationWarning`. The `_alias` response field and the on-disk
+  `alias` schema key retain their spelling for data back-compat (intentionally
+  out of scope).
+- Paired with **cross-st 0.12.0**, which removes its own `_alias_admin` shim and
+  the hidden `--*-alias` CLI flags, and bumps its floor to
+  `cross-ai-core[all]>=0.11.0`.
+
+---
+
 ## [0.10.0] — 2026-07-16  *(Ollama local/LAN provider)*
 
 Additive, fully backward-compatible minor release. Adds Ollama as the first

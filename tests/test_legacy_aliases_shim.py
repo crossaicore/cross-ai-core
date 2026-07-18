@@ -1,17 +1,16 @@
-"""tests/test_legacy_aliases_shim.py — AGT-9 deprecation shim coverage.
+"""tests/test_legacy_aliases_shim.py — AGT-9 shim *removal* coverage.
 
-The submodule ``cross_ai_core.aliases`` was renamed to
-``cross_ai_core.agents`` in 0.9.0.  A thin shim module remains for one
-release so external callers that did
-``from cross_ai_core.aliases import resolve_alias`` keep working.  This
-test pins:
+The submodule ``cross_ai_core.aliases`` was a one-release deprecation
+shim (introduced 0.9.0) that re-exported the symbols which moved to
+``cross_ai_core.agents``.  It was **removed in cross-ai-core 0.11.0**.
 
-  * Importing the shim module emits a :class:`DeprecationWarning`.
-  * Every legacy public name the shim re-exports actually resolves and
-    points at the new symbol.
-  * The legacy ``CROSS_AI_ALIASES_FILE`` env-var is no longer honoured
-    for path resolution; setting it emits a :class:`DeprecationWarning`
-    on first use.
+These tests pin the removal (inverted from the old shim-behaviour tests):
+
+  * Importing ``cross_ai_core.aliases`` now raises :class:`ModuleNotFoundError`.
+  * The canonical ``cross_ai_core.agents`` module is unaffected.
+  * The legacy ``CROSS_AI_ALIASES_FILE`` env-var is still *not* honoured
+    for path resolution; using it emits a :class:`DeprecationWarning` on
+    first use (this behaviour lives in ``agents.py`` and outlives the shim).
 """
 from __future__ import annotations
 
@@ -24,45 +23,23 @@ import pytest
 
 @pytest.fixture
 def fresh_aliases_import():
-    """Force a clean re-import of cross_ai_core.aliases each test."""
+    """Ensure no stale cross_ai_core.aliases entry lingers in sys.modules."""
     sys.modules.pop("cross_ai_core.aliases", None)
     yield
     sys.modules.pop("cross_ai_core.aliases", None)
 
 
-def test_aliases_shim_emits_deprecation_warning(fresh_aliases_import):
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
+def test_aliases_shim_module_removed(fresh_aliases_import):
+    """The deprecated shim module must no longer be importable."""
+    with pytest.raises(ModuleNotFoundError):
         importlib.import_module("cross_ai_core.aliases")
-    deprecations = [w for w in caught if issubclass(w.category, DeprecationWarning)]
-    assert any(
-        "cross_ai_core.aliases is deprecated" in str(w.message)
-        for w in deprecations
-    ), f"expected deprecation; got {[str(w.message) for w in deprecations]}"
 
 
-def test_aliases_shim_reexports_legacy_names(fresh_aliases_import):
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore", DeprecationWarning)
-        legacy = importlib.import_module("cross_ai_core.aliases")
-    from cross_ai_core import agents as new
-
-    # Every legacy public name should resolve and be the same object as
-    # its new-module counterpart.
-    pairs = [
-        ("AliasSpec", "AgentSpec"),
-        ("resolve_alias", "resolve_agent"),
-        ("reload_aliases", "reload_agents"),
-        ("get_aliases", "get_agents"),
-        ("get_alias_load_error", "get_agent_load_error"),
-        ("_AI_ALIASES", "_AGENTS"),
-        ("_aliases_file_path", "_agents_file_path"),
-    ]
-    for legacy_name, new_name in pairs:
-        assert hasattr(legacy, legacy_name), f"shim missing {legacy_name}"
-        assert getattr(legacy, legacy_name) is getattr(new, new_name), (
-            f"{legacy_name} should be the same object as {new_name}"
-        )
+def test_agents_module_still_importable():
+    """Removing the shim must not disturb the canonical module."""
+    agents = importlib.import_module("cross_ai_core.agents")
+    assert hasattr(agents, "resolve_agent")
+    assert hasattr(agents, "get_agents")
 
 
 def test_legacy_env_var_emits_deprecation(monkeypatch, tmp_path):
