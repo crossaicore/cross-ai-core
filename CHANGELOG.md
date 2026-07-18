@@ -10,14 +10,30 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 Cleanup-only release. Completes the AGT-9 alias → agent rename by removing the
 one-release deprecation **module** shim that was carried through 0.9.0 and
-0.10.0. No functional change to the agent API; the canonical
-`cross_ai_core.agents` module is unaffected.
+0.10.0. No change to the agent *API surface*; the canonical
+`cross_ai_core.agents` module is unaffected. Also carries one **fix** (below)
+for a keyless-provider dispatch crash found while dogfooding the 0.10.0 Ollama
+provider.
 
 ### Removed
 - **`cross_ai_core.aliases` module shim** (deprecated since 0.9.0). Import it and
   you now get `ModuleNotFoundError`. Migrate to `cross_ai_core.agents` — e.g.
   `from cross_ai_core.agents import resolve_agent` — or import the public names
   directly from the top-level `cross_ai_core` package.
+
+### Fixed
+- **Keyless-provider auto-dispatch crash** (`get_content_auto()` and the
+  `get_content` / `put_content` / `get_data_title` / `get_data_content` /
+  `get_usage` helpers). These resolved their `ai_key` argument strictly as an
+  **agent name**, but `get_content_auto()` feeds them the raw stamped `_make`.
+  Cloud providers worked by luck (agent name == make); for **keyless makes whose
+  agent name differs from the make** — every Ollama agent, e.g. `ollama-qwen`
+  with make `ollama` — `resolve_agent("ollama")` raised `ValueError` and crashed
+  every `st-*` tool immediately after generating. New internal `_make_for(ai_key)`
+  helper: if `ai_key` is already an `AI_HANDLER_REGISTRY` key (a raw make) it is
+  used directly, otherwise it is resolved as an agent. Wired into all five
+  helpers, with a regression test. (This shipped in 0.11.0 but was omitted from
+  the original changelog entry — documented retroactively 2026-07-18.)
 
 ### Notes
 - The legacy `CROSS_AI_ALIASES_FILE` environment variable remains **ignored**
