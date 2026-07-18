@@ -33,7 +33,7 @@ Sends `prompt` to the provider identified by `ai_key` and returns an `AIResponse
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `ai_key` | `str` | — | Provider key: `"xai"`, `"anthropic"`, `"openai"`, `"perplexity"`, or `"gemini"` |
+| `ai_key` | `str` | — | Provider key: `"xai"`, `"anthropic"`, `"openai"`, `"perplexity"`, `"gemini"`, or `"ollama"` (or any configured agent name) |
 | `prompt` | `str` | — | The user message to send |
 | `system` | `str \| None` | `None` | System / persona prompt. `None` uses the provider's built-in default |
 | `verbose` | `bool` | `False` | Print cache-hit / miss messages to stdout |
@@ -184,7 +184,7 @@ result = process_prompt(agent, prompt)
 def get_ai_list() -> list[str]
 ```
 
-Returns `["xai", "anthropic", "openai", "perplexity", "gemini"]` — the full list
+Returns `["xai", "anthropic", "openai", "perplexity", "gemini", "ollama"]` — the full list
 of registered provider keys.  Use this to iterate over all providers without
 hardcoding names.
 
@@ -252,7 +252,7 @@ with ThreadPoolExecutor(max_workers=2) as pool:
         print(f"\n=== {provider} ===\n{text}\n")
 ```
 
-### All five providers
+### All six providers
 
 ```python
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -265,7 +265,7 @@ def call_one(provider):
     result = process_prompt(provider, prompt, system=system, use_cache=True)
     return provider, get_content(provider, result.response)
 
-providers = get_ai_list()   # ["xai", "anthropic", "openai", "perplexity", "gemini"]
+providers = get_ai_list()   # ["xai", "anthropic", "openai", "perplexity", "gemini", "ollama"]
 
 with ThreadPoolExecutor(max_workers=len(providers)) as pool:
     futures = {pool.submit(call_one, p): p for p in providers}
@@ -364,7 +364,7 @@ except QuotaExceededError as e:
 
 ### Parallel calls with per-provider fallback
 
-When running all five providers in parallel, you usually want one provider's
+When running all six providers in parallel, you usually want one provider's
 failure to not cancel the others.  Use the `safe_prompt` wrapper with a
 try/except inside the thread:
 

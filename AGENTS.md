@@ -3,7 +3,7 @@
 ## What This Package Does
 `cross-ai-core` is a multi-provider AI dispatcher extracted from the `cross-ai` application.
 It provides a single `process_prompt()` interface across Anthropic, xAI, OpenAI, Google Gemini,
-and Perplexity, with MD5-keyed response caching and unified error handling.
+Perplexity, and Ollama (local/LAN, keyless), with MD5-keyed response caching and unified error handling.
 
 ## Repo layout
 ```

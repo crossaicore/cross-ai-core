@@ -1,7 +1,8 @@
 # Providers — cross-ai-core
 
-`cross-ai-core` supports five AI providers through a single `process_prompt()` interface.
-You only need API keys for the providers you actually use.
+`cross-ai-core` supports six AI providers through a single `process_prompt()` interface.
+You only need API keys for the providers you actually use — **Ollama is keyless** (it runs
+models locally or on your LAN).
 
 ## Quick-pick guide
 
@@ -12,6 +13,7 @@ You only need API keys for the providers you actually use.
 | `"openai"` | GPT-4o | Reliable baseline, structured output | ❌ No |
 | `"perplexity"` | Sonar Pro | Live web search with citations | ❌ No |
 | `"gemini"` | Gemini 2.5 | Long context, getting started | ✅ Yes |
+| `"ollama"` | Llama 3.1 & any local model | Private / offline, no API key, no billing | ✅ Free (self-hosted) |
 
 ---
 
@@ -116,9 +118,49 @@ If a prompt triggers one, rephrase or use a different provider.
 
 ---
 
+## Ollama — `"ollama"` (local / LAN, keyless)
+
+**Default model:** `llama3.1`  
+**Config variable:** `OLLAMA_BASE_URL` (default `http://localhost:11434`)  
+**Get started:** [ollama.com/download](https://ollama.com/download) — then `ollama pull llama3.1`  
+**Install:** `pip install cross-ai-core` *(no extra SDK — uses `requests`)*
+
+Ollama is the first **local** and first **keyless** provider. It talks to an Ollama
+daemon over HTTP (`POST /api/generate`, non-streaming) instead of a cloud API — so
+there is **no API key** and, on a trusted network, **your prompts never leave your
+hardware**. `check_api_key("ollama")` always returns `True`, and `ollama` is
+deliberately absent from `keys.PROVIDER_API_KEY_ENV`; any consumer that filters by
+`has_api_key()` must treat it as always-available.
+
+**Strengths:**
+- Fully private / offline — nothing is sent to a third-party provider
+- No API key and no per-token billing — run open-weight models for free
+- Point `OLLAMA_BASE_URL` at a beefier LAN host to offload generation
+
+**Config variables:**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Daemon location — local or a LAN host |
+| `OLLAMA_MODEL` | `llama3.1` | Default model (resolved via the generic `<MAKE>_MODEL` path) |
+| `OLLAMA_API_TOKEN` | *(empty)* | Optional `Authorization: Bearer` token for reverse-proxied daemons |
+| `OLLAMA_REQUEST_TIMEOUT` | `120` | Generation request timeout, seconds |
+| `OLLAMA_HEALTH_CHECK_TIMEOUT` | `5` | Connectivity/discovery probe timeout, seconds |
+| `OLLAMA_MAX_CONCURRENCY` | `2` | Hardware-bound concurrency cap (host RAM/VRAM, not network) |
+
+**Connectivity helpers:** `OllamaHandler.health_check()` (never raises),
+`require_healthy()` (raises `ConnectionError` with a hint if down), and
+`list_models()` (installed model tags; `[]` on failure).
+
+**Notes:** Concurrency is bound by host RAM/VRAM, not network — the cap defaults to
+2 (override with `OLLAMA_MAX_CONCURRENCY`). A daemon can be up with zero models
+pulled; run `ollama pull <model>` first.
+
+---
+
 ## Using multiple providers in parallel
 
-All five providers can run simultaneously — since `process_prompt` is I/O-bound,
+All six providers can run simultaneously — since `process_prompt` is I/O-bound,
 Python threads give true parallelism:
 
 ```python
@@ -155,6 +197,8 @@ See the [API reference](api-reference.md#parallel-calls) for a two-provider exam
 | `OPENAI_API_KEY` | OpenAI |
 | `PERPLEXITY_API_KEY` | Perplexity |
 | `GEMINI_API_KEY` | Google Gemini |
+| `OLLAMA_BASE_URL` | Ollama daemon location (keyless — local/LAN, default `http://localhost:11434`) |
+| `OLLAMA_MODEL` | Ollama default model (default `llama3.1`) |
 | `DEFAULT_AGENT` | Which agent `get_default_ai()` returns (set by `st-admin > AI > d`) |
 | `DEFAULT_AI` | Legacy pre-Agents-v2 spelling of `DEFAULT_AGENT`; still read for back-compat |
 | `CROSS_AI_AGENTS_FILE` | Override default `~/.cross_ai_models.json` agent registry path |

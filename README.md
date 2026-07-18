@@ -6,7 +6,7 @@
 
 Multi-provider AI dispatcher with MD5-keyed response caching and unified error handling.
 
-Supports **Anthropic**, **xAI (Grok)**, **OpenAI**, **Google Gemini**, and **Perplexity** through a single consistent interface.
+Supports **Anthropic**, **xAI (Grok)**, **OpenAI**, **Google Gemini**, **Perplexity**, and **Ollama** (local/LAN, keyless) through a single consistent interface.
 
 ## Requirements
 
@@ -22,10 +22,10 @@ pip install "cross-ai-core[anthropic]"   # Claude
 pip install "cross-ai-core[gemini]"      # Google Gemini
 pip install "cross-ai-core[openai]"      # OpenAI (ChatGPT)
 pip install "cross-ai-core[xai]"         # xAI Grok  (uses the OpenAI SDK)
-pip install cross-ai-core                # Perplexity only (uses requests, no extra SDK)
+pip install cross-ai-core                # Perplexity or Ollama (uses requests, no extra SDK)
 ```
 
-Install all providers at once (used by [cross-st](https://github.com/crossaicore/cross-st), which runs all 5 simultaneously):
+Install all providers at once (used by [cross-st](https://github.com/crossaicore/cross-st), which runs multiple providers simultaneously):
 
 ```bash
 pip install "cross-ai-core[all]"
@@ -33,17 +33,17 @@ pip install "cross-ai-core[all]"
 
 ## Dependencies
 
-`requests` is always installed — it is used for the Perplexity provider and general HTTP.  
+`requests` is always installed — it is used for the Perplexity and Ollama providers and general HTTP.  
 The three provider SDKs are optional extras; pip installs only what you request.
 
 | Extra | Package | Version | Providers covered |
 |-------|---------|---------|-------------------|
-| *(base)* | `requests` | ≥2.32.4 | Perplexity |
+| *(base)* | `requests` | ≥2.32.4 | Perplexity, Ollama (local/LAN, keyless) |
 | `[anthropic]` | `anthropic` | ≥0.84.0 | Anthropic / Claude |
 | `[gemini]` | `google-genai` | ≥1.65.0 | Google Gemini |
 | `[openai]` | `openai` | ≥1.70.0 | OpenAI |
 | `[xai]` | `openai` | ≥1.70.0 | xAI / Grok (OpenAI-compatible API) |
-| `[all]` | all three above | — | All 5 providers |
+| `[all]` | all three above | — | All 6 providers |
 
 ## Quick start
 
@@ -98,6 +98,8 @@ For older callers, `get_content(agent, result.response)` still works (it alias-r
 | `OPENAI_API_KEY` | — | OpenAI API key |
 | `GEMINI_API_KEY` | — | Google Gemini API key |
 | `PERPLEXITY_API_KEY` | — | Perplexity API key |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama daemon location (local or LAN) — keyless |
+| `OLLAMA_MODEL` | `llama3.1` | Default Ollama model |
 | `CROSS_API_CACHE_DIR` | `~/.cross_api_cache/` | Response cache directory |
 | `CROSS_NO_CACHE` | — | Set to `1` to disable caching globally |
 | `CROSS_NO_CLIENT_CACHE` | — | Set to `1` to disable per-provider client singleton caching |
