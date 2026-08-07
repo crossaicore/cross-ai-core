@@ -115,19 +115,23 @@ pip install build twine
 Edit **`pyproject.toml`** only — this is the single source of truth:
 
 ```toml
-version = "0.2.0"
+version = "2026.8.0"
 ```
 
 `cross_ai_core/__init__.py` reads the version at runtime via `importlib.metadata`
 and does **not** contain a hardcoded version string.
 
-Version numbers follow [Semantic Versioning](https://semver.org/):
+Version numbers follow Calendar Versioning (`YYYY.M.R`):
 
-| Change | Example | When to use |
+| Segment | Meaning | Example |
 |---|---|---|
-| Patch `0.1.x` | `0.1.0` → `0.1.1` | Bug fix, no API change |
-| Minor `0.x.0` | `0.1.0` → `0.2.0` | New feature, fully backward-compatible |
-| Major `x.0.0` | `0.1.0` → `1.0.0` | Breaking change to public API |
+| `YYYY` | 4-digit year | `2026` |
+| `M` | Month `1-12` (no leading zero) | `8` |
+| `R` | Release index within that month, starting at `0` | `0`, `1`, `2` |
+
+Examples: `2026.8.0` (first August release), `2026.8.1` (second August release).
+
+Tags follow the same value prefixed with `v` (for example `v2026.8.0`).
 
 ### Step 2 — Run the tests
 
@@ -150,8 +154,8 @@ python -m build
 ```
 
 This produces two files in `dist/`:
-- `cross_ai_core-0.2.0.tar.gz` — source distribution
-- `cross_ai_core-0.2.0-py3-none-any.whl` — wheel
+- `cross_ai_core-2026.8.0.tar.gz` — source distribution
+- `cross_ai_core-2026.8.0-py3-none-any.whl` — wheel
 
 ### Step 4 — Validate the build
 
@@ -173,7 +177,7 @@ Then verify it installs cleanly from the sandbox:
 ```bash
 pip install --index-url https://test.pypi.org/simple/ \
             --extra-index-url https://pypi.org/simple/ \
-            cross-ai-core==0.2.0
+            cross-ai-core==2026.8.0
 python -c "import cross_ai_core; print(cross_ai_core.__version__)"
 ```
 
@@ -192,8 +196,8 @@ The package is now live at <https://pypi.org/project/cross-ai-core/>.
 
 ```bash
 git add pyproject.toml
-git commit -m "Release v0.2.0"
-git tag v0.2.0
+git commit -m "Release v2026.8.0"
+git tag v2026.8.0
 git push && git push --tags
 ```
 
@@ -203,7 +207,7 @@ In `~/github/cross/pyproject.toml`, update the lower bound if the new release
 is required:
 
 ```toml
-"cross-ai-core>=0.2.0",
+"cross-ai-core>=2026.8.0",
 ```
 
 Then reinstall Cross:
@@ -220,7 +224,7 @@ python -m pytest tests/ -q    # confirm nothing broke
 ## Routine version bump — quick reference
 
 ```bash
-# 1. Edit version in pyproject.toml and cross_ai_core/__init__.py
+# 1. Edit version in pyproject.toml
 # 2. Test
 cd ~/github/cross-ai-core && source .venv/bin/activate
 python -m pytest tests/ -v
@@ -235,22 +239,22 @@ twine upload --repository testpypi dist/*
 twine upload dist/*
 
 # 6. Tag
-git add pyproject.toml cross_ai_core/__init__.py
-git commit -m "Release v0.x.y"
-git tag v0.x.y && git push && git push --tags
+git add pyproject.toml
+git commit -m "Release vYYYY.M.R"
+git tag vYYYY.M.R && git push && git push --tags
 ```
 
 ---
 
-## Hotfix process
+## Maintenance release process
 
 For an urgent bug fix without new features:
 
-1. Create a branch: `git checkout -b hotfix/0.1.1`
-2. Fix the bug, update version to `0.1.1` in both files
+1. Create a branch: `git checkout -b hotfix/2026.8.1`
+2. Fix the bug, bump `pyproject.toml` to the next monthly release index
 3. Run tests, build, upload to TestPyPI, upload to PyPI
-4. `git tag v0.1.1 && git push --tags`
-5. Merge back to `master`: `git checkout master && git merge hotfix/0.1.1`
+4. `git tag v2026.8.1 && git push --tags`
+5. Merge back to `main`: `git checkout main && git merge hotfix/2026.8.1`
 
 ---
 
@@ -258,7 +262,7 @@ For an urgent bug fix without new features:
 
 **`twine upload` says "File already exists"**  
 PyPI does not allow re-uploading the same version number, even if you delete the
-release. Bump to a new patch version (e.g. `0.1.1`) and upload again.
+release. Bump to the next CalVer release (e.g. `2026.8.1`) and upload again.
 
 **`twine check` fails on long description**  
 The README must be valid reStructuredText or Markdown. Run `python -m build`
@@ -266,7 +270,7 @@ and inspect `dist/*.tar.gz` to confirm `README.md` is included.
 
 **`pip install cross-ai-core` gets the old version**  
 PyPI has a propagation delay of a few minutes.  Wait and retry, or install
-with the explicit version: `pip install cross-ai-core==0.2.0`.
+with the explicit version: `pip install cross-ai-core==2026.8.0`.
 
 **Token rejected**  
 Confirm `~/.pypirc` has `username = __token__` (literally, not your username)
@@ -280,9 +284,9 @@ and the password is the full token string starting with `pypi-`.
 version, the workflow in the `cross-ai` repo is:
 
 ```
-cross-ai-core releases 0.2.0
+cross-ai-core releases 2026.8.0
     ↓
-pip install cross-ai-core==0.2.0   (test in cross-ai's venv)
+pip install cross-ai-core==2026.8.0   (test in cross-ai's venv)
     ↓
 Update cross-ai/pyproject.toml lower bound if needed
     ↓

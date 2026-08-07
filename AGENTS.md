@@ -33,6 +33,22 @@ for loading keys into `os.environ` before importing. The library only reads env 
 **Cache path** is resolved by `_get_cache_dir()` in `ai_base.py` — reads
 `CROSS_API_CACHE_DIR` env var, defaults to `~/.cross_api_cache/`.
 
+## Versioning
+
+`cross-ai-core` uses Calendar Versioning: `YYYY.M.R`.
+
+- `YYYY` = 4-digit year
+- `M` = month `1-12` (no leading zero)
+- `R` = release index within that month, starting at `0`
+
+Examples: `2026.8.0`, `2026.8.1`.
+
+Tags follow the same pattern prefixed with `v`: `v2026.8.0`.
+
+The old SemVer-style `0.x` line is retired; we intentionally skip a `1.0`
+marketing milestone. Keep versions strictly increasing to preserve
+PEP 440/pip upgrade ordering.
+
 ## Adding a provider
 1. Create `cross_ai_core/ai_<name>.py` implementing `BaseAIHandler`
 2. Import `_get_cache_dir` from `.ai_base` for the cache directory
@@ -162,13 +178,13 @@ Quick reference (assumes `~/.pypirc` is already configured):
 rm -rf dist/ && python -m build && twine check dist/*
 twine upload --repository testpypi dist/*   # trial
 twine upload dist/*                         # real
-git tag v0.x.y && git push --tags
+git tag vYYYY.M.R && git push --tags
 ```
 
 ## Version bump checklist
 1. Update `version` in `pyproject.toml` — this is the **single source of truth**; `__init__.py` reads the version via `importlib.metadata` and does **not** contain a hardcoded version string
 2. Add entry to `CHANGELOG.md`
-3. `git tag v0.x.y && git push --tags`
+3. `git tag vYYYY.M.R && git push --tags`
 4. `python -m build && twine upload dist/*`
 5. In `cross-ai/pyproject.toml`, bump the `cross-ai-core>=` lower bound if needed
 

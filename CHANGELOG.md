@@ -2,7 +2,31 @@
 
 All notable changes to `cross-ai-core` are documented here.  
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).  
-Versioning follows [Semantic Versioning](https://semver.org/).
+Versioning follows Calendar Versioning (`YYYY.M.R`).
+
+---
+
+## [2026.8.0] — 2026-08-07  *(CalVer migration cut)*
+
+First Calendar Versioning release. This is a one-time version-scheme migration
+from SemVer-style `0.x` to `YYYY.M.R`.
+
+- `YYYY` = 4-digit year
+- `M` = month `1-12` (no leading zero)
+- `R` = release index within the month, starting at `0`
+
+Why the jump is large: package installers compare versions numerically
+left-to-right, so `2026.8.0 > 0.11.0` and upgrades remain monotonic.
+
+### Changed
+- `pyproject.toml` version changed from `0.11.0` to `2026.8.0`.
+- Tag convention moves from `v0.x.y` to `vYYYY.M.R`.
+
+### Notes
+- This is a versioning migration release; runtime behaviour is unchanged from
+  the 0.11.0 code line.
+- Coordinated with `cross-st 2026.8.0`, which now floors
+  `cross-ai-core[all]>=2026.8.0`.
 
 ---
 
