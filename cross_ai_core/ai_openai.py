@@ -120,9 +120,9 @@ def get_openai_payload(prompt_from_file, system: str | None = None):
                 "content": prompt_from_file,
             }
         ],
-        "max_tokens": BaseAIHandler.MAX_TOKENS,
-        "temperature": 0.7,         # 0.0 = deterministic, 1.0 = creative; 0.7 balances both
-        "top_p": 0.95,              # Nucleus sampling; limits token selection to top 95% probability mass
+        "max_completion_tokens": BaseAIHandler.MAX_TOKENS,
+        # Use model sampling defaults: reasoning models can reject custom
+        # temperature and top_p values. The dispatcher selects the model later.
     }
     return payload
 

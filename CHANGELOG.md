@@ -6,6 +6,25 @@ Versioning follows Calendar Versioning (`YYYY.M.R`).
 
 ---
 
+## [2026.10.0] — 2026-10-13
+
+### Fixed
+- OpenAI requests now use `max_completion_tokens` instead of the deprecated
+  `max_tokens`, allowing report generation with GPT-6 Astra and other reasoning
+  models that reject the old parameter.
+- Removed the fixed `temperature=0.7` and `top_p=0.95` overrides from OpenAI
+  requests. GPT-6 Astra rejects custom sampling values; all OpenAI models now
+  use their API sampling defaults.
+
+### Changed
+- Package project links now point to the canonical `crossaicore` GitHub account.
+
+### Tests
+- Added OpenAI SDK request coverage for agent, environment, and per-call model
+  selection, plus the default model, using a mocked HTTP transport.
+
+---
+
 ## [2026.8.0] — 2026-08-07  *(CalVer migration cut)*
 
 First Calendar Versioning release. This is a one-time version-scheme migration

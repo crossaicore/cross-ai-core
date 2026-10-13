@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "cross-ai-core"
-version         = "2026.8.0"
+version         = "2026.10.0"
 description     = "Multi-provider AI dispatcher with response caching and error handling."
 readme          = "README.md"
 license         = "MIT"
@@ -52,11 +52,11 @@ dev = [
 ]
 
 [project.urls]
-Homepage        = "https://github.com/b202i/cross-ai-core"
-Repository      = "https://github.com/b202i/cross-ai-core"
-Documentation   = "https://github.com/b202i/cross-ai-core/tree/main/docs"
-Changelog       = "https://github.com/b202i/cross-ai-core/blob/main/CHANGELOG.md"
-"Bug Tracker"   = "https://github.com/b202i/cross-ai-core/issues"
+Homepage        = "https://github.com/crossaicore/cross-ai-core"
+Repository      = "https://github.com/crossaicore/cross-ai-core"
+Documentation   = "https://github.com/crossaicore/cross-ai-core/tree/main/docs"
+Changelog       = "https://github.com/crossaicore/cross-ai-core/blob/main/CHANGELOG.md"
+"Bug Tracker"   = "https://github.com/crossaicore/cross-ai-core/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
