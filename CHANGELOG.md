@@ -6,7 +6,7 @@ Versioning follows Calendar Versioning (`YYYY.M.R`).
 
 ---
 
-## [2026.11.0] — Unreleased
+## [2026.11.0] — 2026-11-05
 
 ### Added
 - Optional live usage smoke command with dry-run default, a small output limit,
