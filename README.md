@@ -122,6 +122,22 @@ if result.was_cached:
     print("from cache")
 ```
 
+## Usage reporting
+
+`get_usage_report(provider_or_agent, response)` returns a common `UsageReport`
+with input/output totals, provider cache and reasoning breakdowns, explicit
+unknown values, and validation issues. It reads the response without a tokenizer,
+provider call or extra dependency. See the
+[usage API](docs/api-reference.md#get_usage_report) for the record and examples.
+
+An optional [live smoke check](docs/live-usage-smoke.md) sends one small request
+to a selected provider and checks real response text and usage metadata. It
+defaults to a dry run; ordinary tests remain offline.
+
+Use `AIResponse.was_cached` to distinguish local reuse from a new provider
+request. Cached historical token counts must not be charged again. The older
+`get_usage()` dictionary remains available for existing consumers.
+
 ## Development
 
 ```bash
@@ -150,6 +166,8 @@ Tests use mocks — no real API keys required.
 
 ## Documentation
 
+- [Usage reporting design](docs/usage-reporting-design.md) — common usage contract, provider mappings and compatibility decisions
+- [Usage implementation review](docs/usage-reporting-review.md) — local test results, robustness review and remaining integration work
 - [API reference](docs/api-reference.md) — all public functions, `AIResponse`, parallel calls, error handling
 - [Providers](docs/providers.md) — per-provider guide: models, API keys, strengths, free tiers
 - [Changelog](CHANGELOG.md)

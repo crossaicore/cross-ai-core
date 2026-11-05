@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name            = "cross-ai-core"
-version         = "2026.10.0"
+version         = "2026.11.0"
 description     = "Multi-provider AI dispatcher with response caching and error handling."
 readme          = "README.md"
 license         = "MIT"
@@ -49,6 +49,7 @@ all = [
 dev = [
     "pytest>=8.0",
     "pytest-mock>=3.12",
+    "python-dotenv>=1.0",  # Optional smoke command's explicit --env-file loading.
 ]
 
 [project.urls]

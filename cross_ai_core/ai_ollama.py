@@ -36,6 +36,7 @@ Streaming and ``/api/chat`` are future (Phase 5).
 import os
 
 from .ai_base import BaseAIHandler
+from .usage import UsageReport, _count, _mapping, _report
 
 AI_MAKE = "ollama"
 AI_MODEL = "llama3.1"
@@ -213,17 +214,16 @@ class OllamaHandler(BaseAIHandler):
         return get_data_content(select_data)
 
     @classmethod
-    def get_usage(cls, response: dict) -> dict:
-        """Extract token counts from an Ollama ``/api/generate`` response.
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        response = _mapping(response)
+        raw = {key: response[key] for key in ("prompt_eval_count", "eval_count") if key in response}
+        issues = []
+        return _report(
+            cls.get_make(), response.get("model"), raw or None,
+            input_tokens=_count(raw, "prompt_eval_count", issues),
+            output_tokens=_count(raw, "eval_count", issues), issues=issues,
+        )
 
-        Ollama reports ``prompt_eval_count`` (input) and ``eval_count``
-        (output).  Either may be absent for very short generations, so default
-        to 0 - the ``{input_tokens, output_tokens, total_tokens}`` contract is
-        always satisfied (never ``None``).
-        """
-        inp = response.get("prompt_eval_count", 0) or 0
-        out = response.get("eval_count", 0) or 0
-        return {"input_tokens": inp, "output_tokens": out, "total_tokens": inp + out}
 
 
 def get_ollama_payload(prompt_from_file, system: str | None = None):

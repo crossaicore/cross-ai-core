@@ -1,0 +1,148 @@
+{
+  "run_date": "2026-11-05",
+  "transport": "localhost-only SSH forwards",
+  "servers": {
+    "m2mac": {
+      "address": "172.16.0.8",
+      "service": "Ollama",
+      "native_url": "http://127.0.0.1:11435"
+    },
+    "flik": {
+      "address": "172.16.0.9",
+      "service": "LM Studio",
+      "openai_compatible_url": "http://127.0.0.1:1235/v1"
+    }
+  },
+  "results": [
+    {
+      "agent": "ollama",
+      "provider": "ollama",
+      "requested_model": "llama3.1:latest",
+      "max_output_tokens": 128,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": true,
+      "status": "passed",
+      "usage": {
+        "provider": "ollama",
+        "model": "llama3.1:latest",
+        "input_tokens": 34,
+        "output_tokens": 2,
+        "total_tokens": 36,
+        "cache_read_tokens": null,
+        "cache_write_tokens": null,
+        "reasoning_tokens": null,
+        "status": "complete",
+        "issues": [
+          "total_derived"
+        ],
+        "raw_usage": {
+          "prompt_eval_count": 34,
+          "eval_count": 2
+        }
+      },
+      "text": "OK",
+      "checks": {
+        "fresh_response": true,
+        "expected_text": true,
+        "complete_usage": true,
+        "positive_counts": true,
+        "no_usage_errors": true,
+        "native_usage_retained": true
+      },
+      "server": "m2mac-ollama",
+      "base_url": "http://127.0.0.1:11435",
+      "checked_at": "2026-11-05T16:17:48.865338+00:00",
+      "command_exit_code": 0
+    },
+    {
+      "agent": "openai",
+      "provider": "openai",
+      "requested_model": "qwen/qwen3.5-35b-a3b",
+      "max_output_tokens": 128,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": true,
+      "status": "failed",
+      "usage": {
+        "provider": "openai",
+        "model": "qwen/qwen3.5-35b-a3b",
+        "input_tokens": 34,
+        "output_tokens": 128,
+        "total_tokens": 162,
+        "cache_read_tokens": null,
+        "cache_write_tokens": null,
+        "reasoning_tokens": 128,
+        "status": "complete",
+        "issues": [],
+        "raw_usage": {
+          "completion_tokens": 128,
+          "prompt_tokens": 34,
+          "total_tokens": 162,
+          "completion_tokens_details": {
+            "reasoning_tokens": 128
+          }
+        }
+      },
+      "text": "",
+      "checks": {
+        "fresh_response": true,
+        "expected_text": false,
+        "complete_usage": true,
+        "positive_counts": true,
+        "no_usage_errors": true,
+        "native_usage_retained": true
+      },
+      "server": "flik-lmstudio",
+      "base_url": "http://127.0.0.1:1235/v1",
+      "checked_at": "2026-11-05T16:17:49.944200+00:00",
+      "command_exit_code": 1
+    },
+    {
+      "agent": "openai",
+      "provider": "openai",
+      "requested_model": "qwen/qwen3.5-35b-a3b",
+      "max_output_tokens": 512,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": true,
+      "status": "passed",
+      "usage": {
+        "provider": "openai",
+        "model": "qwen/qwen3.5-35b-a3b",
+        "input_tokens": 34,
+        "output_tokens": 178,
+        "total_tokens": 212,
+        "cache_read_tokens": null,
+        "cache_write_tokens": null,
+        "reasoning_tokens": 174,
+        "status": "complete",
+        "issues": [],
+        "raw_usage": {
+          "completion_tokens": 178,
+          "prompt_tokens": 34,
+          "total_tokens": 212,
+          "completion_tokens_details": {
+            "reasoning_tokens": 174
+          }
+        }
+      },
+      "text": "OK",
+      "checks": {
+        "fresh_response": true,
+        "expected_text": true,
+        "complete_usage": true,
+        "positive_counts": true,
+        "no_usage_errors": true,
+        "native_usage_retained": true
+      },
+      "server": "flik-lmstudio",
+      "base_url": "http://127.0.0.1:1235/v1",
+      "checked_at": "2026-11-05T16:19:08.363753+00:00",
+      "purpose": "Explicit follow-up with room for reasoning and final text after the 128-token cap was exhausted"
+    }
+  ]
+}

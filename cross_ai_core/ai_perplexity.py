@@ -55,6 +55,8 @@ import json
 import os
 
 from .ai_base import BaseAIHandler
+from .ai_openai import _chat_usage
+from .usage import UsageReport
 
 AI_MAKE = "perplexity"
 AI_MODEL = "sonar-pro"  # 02mar26
@@ -97,13 +99,8 @@ class PerplexityHandler(BaseAIHandler):
         return get_data_content(select_data)
 
     @classmethod
-    def get_usage(cls, response: dict) -> dict:
-        """Extract token counts from a Perplexity (OpenAI-compatible) response dict."""
-        usage = response.get("usage", {})
-        inp = usage.get("prompt_tokens", 0)
-        out = usage.get("completion_tokens", 0)
-        tot = usage.get("total_tokens") or (inp + out)
-        return {"input_tokens": inp, "output_tokens": out, "total_tokens": tot}
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        return _chat_usage(cls.get_make(), response)
 
 
 

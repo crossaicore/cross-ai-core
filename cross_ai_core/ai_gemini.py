@@ -72,6 +72,7 @@ v1:      GA endpoint; does NOT support systemInstruction field
 import os
 
 from .ai_base import BaseAIHandler
+from .usage import UsageReport, _count, _mapping, _report, _sum_counts
 
 AI_MAKE = "gemini"
 AI_MODEL = "gemini-2.5-flash"   # 02mar26 — confirmed available via list_gemini_models.py
@@ -119,24 +120,65 @@ class GeminiHandler(BaseAIHandler):
         return get_data_content(select_data)
 
     @classmethod
-    def get_usage(cls, response: dict) -> dict:
-        """Extract token counts from a Gemini response dict.
-        Gemini flattens usage_metadata to the top level in get_json_response."""
-        inp = response.get("prompt_token_count", 0)
-        out = response.get("candidates_token_count", 0)
-        tot = response.get("total_token_count") or (inp + out)
-        return {"input_tokens": inp, "output_tokens": out, "total_tokens": tot}
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        response = _mapping(response)
+        names = {
+            "prompt_token_count": "promptTokenCount",
+            "candidates_token_count": "candidatesTokenCount",
+            "total_token_count": "totalTokenCount",
+            "thoughts_token_count": "thoughtsTokenCount",
+            "tool_use_prompt_token_count": "toolUsePromptTokenCount",
+            "cached_content_token_count": "cachedContentTokenCount",
+        }
+        legacy = "usageMetadata" not in response and "usage_metadata" not in response
+        if "usageMetadata" in response:
+            raw = response["usageMetadata"]
+            data = _mapping(raw)
+            usage = {snake: data[camel] for snake, camel in names.items() if camel in data}
+        elif "usage_metadata" in response:
+            raw = response["usage_metadata"]
+            usage = _mapping(raw)
+        else:
+            raw = {key: response[key] for key in names if key in response} or None
+            usage = _mapping(raw)
+        issues = []
+        inp = _count(usage, "prompt_token_count", issues)
+        out = _count(usage, "candidates_token_count", issues)
+        thoughts = _count(usage, "thoughts_token_count", issues)
+        tools = _count(usage, "tool_use_prompt_token_count", issues)
+        inp = _sum_counts(inp, tools if "tool_use_prompt_token_count" in usage else 0)
+        out = _sum_counts(out, thoughts if "thoughts_token_count" in usage else 0)
+        total = _count(usage, "total_token_count", issues)
+        if (legacy and inp is not None and out is not None and total is not None
+                and total > inp + out and "thoughts_token_count" not in usage
+                and "tool_use_prompt_token_count" not in usage):
+            # Old cache conversion discarded details. The gap is not proof of
+            # thinking usage: retain the total and acknowledge missing output.
+            out = None
+            issues.append("legacy_usage_incomplete")
+        return _report(
+            cls.get_make(), response.get("modelVersion", response.get("model_version")), raw,
+            input_tokens=inp, output_tokens=out, total_tokens=total,
+            cache_read_tokens=_count(usage, "cached_content_token_count", issues),
+            reasoning_tokens=thoughts,
+            derive_total=usage.get("total_token_count") is None, issues=issues,
+        )
+
 
 
 def get_json_response(response):
-    json_response = {
+    # Preserve SDK details for accounting while keeping the original cache shape
+    # readable by existing consumers. Missing metadata must not lose valid text.
+    metadata = response.usage_metadata
+    dump = getattr(metadata, "model_dump", None)
+    usage = dump(mode="json", exclude_none=True) if callable(dump) else metadata
+    fields = ("candidates_token_count", "prompt_token_count", "total_token_count")
+    return {
         "model_version": response.model_version,
         "text": response.text,
-        "candidates_token_count": response.usage_metadata.candidates_token_count,
-        "prompt_token_count": response.usage_metadata.prompt_token_count,
-        "total_token_count": response.usage_metadata.total_token_count,
+        "usage_metadata": usage,
+        **{name: _mapping(usage).get(name) for name in fields},
     }
-    return json_response
 
 
 

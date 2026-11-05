@@ -59,6 +59,7 @@ import json
 import os
 
 from .ai_base import BaseAIHandler
+from .usage import UsageReport, _count, _details, _mapping, _report, _sum_counts
 
 AI_MAKE = "anthropic"
 AI_MODEL = "claude-opus-4-5"  # 02mar26
@@ -101,14 +102,30 @@ class AnthropicHandler(BaseAIHandler):
         return get_data_content(select_data)
 
     @classmethod
-    def get_usage(cls, response: dict) -> dict:
-        """Extract token counts from an Anthropic-format response dict.
-        Note: extended thinking tokens are included in output_tokens."""
-        usage = response.get("usage", {})
-        inp = usage.get("input_tokens", 0)
-        out = usage.get("output_tokens", 0)
-        return {"input_tokens": inp, "output_tokens": out, "total_tokens": inp + out}
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        return _messages_usage(cls.get_make(), response)
 
+
+def _messages_usage(provider: str, response: dict) -> UsageReport:
+    """Anthropic-compatible Messages: cache tokens are additional input."""
+    response = _mapping(response)
+    raw = response.get("usage")
+    usage = _mapping(raw)
+    issues = []
+    inp = _count(usage, "input_tokens", issues)
+    cache_read = _count(usage, "cache_read_input_tokens", issues)
+    cache_write = _count(usage, "cache_creation_input_tokens", issues)
+    inp = _sum_counts(inp,
+        cache_read if "cache_read_input_tokens" in usage else 0,
+        cache_write if "cache_creation_input_tokens" in usage else 0)
+    return _report(
+        provider, response.get("model"), raw, input_tokens=inp,
+        output_tokens=_count(usage, "output_tokens", issues),
+        total_tokens=_count(usage, "total_tokens", issues),
+        cache_read_tokens=cache_read, cache_write_tokens=cache_write,
+        reasoning_tokens=_count(_details(usage, "output_tokens_details", issues), "thinking_tokens", issues),
+        derive_total=usage.get("total_tokens") is None, issues=issues,
+    )
 
 
 def get_anthropic_payload(prompt, system: str | None = None):
