@@ -161,7 +161,11 @@ Tests cover:
 - `test_ai_error_handler.py` — quota/rate-limit/transient classification, `handle_api_error` exit behaviour
 - `test_ai_handler.py` — registry completeness, `get_default_ai`, `check_api_key`, `AIResponse` backward compat, `process_prompt` with mocked handlers, `_make` stamp, `get_content_auto`, `put_content_auto`
 
-**Never call real AI APIs in tests.** Use `unittest.mock.patch.dict(AI_HANDLER_REGISTRY, ...)` to inject mock handler classes.
+**Keep the normal test suite offline.** Use `unittest.mock.patch.dict(AI_HANDLER_REGISTRY, ...)` to inject mock handler classes.
+The owner-authorized exception is the separately invoked
+`tools/live_usage_smoke.py --live` check, documented in
+`docs/live-usage-smoke.md`. It defaults to a dry run and is not collected by pytest.
+Run paid checks only when requested; do not add them to routine CI.
 
 
 

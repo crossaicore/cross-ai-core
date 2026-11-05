@@ -55,6 +55,7 @@ import json
 import os
 
 from .ai_base import BaseAIHandler
+from .usage import UsageReport, _count, _details, _mapping, _report
 
 AI_MAKE = "openai"
 AI_MODEL = "gpt-4o"  # 02mar26
@@ -97,14 +98,28 @@ class OpenAIHandler(BaseAIHandler):
         return get_data_content(select_data)
 
     @classmethod
-    def get_usage(cls, response: dict) -> dict:
-        """Extract token counts from an OpenAI-format response dict."""
-        usage = response.get("usage", {})
-        inp = usage.get("prompt_tokens", 0)
-        out = usage.get("completion_tokens", 0)
-        tot = usage.get("total_tokens") or (inp + out)
-        return {"input_tokens": inp, "output_tokens": out, "total_tokens": tot}
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        return _chat_usage(cls.get_make(), response)
 
+
+def _chat_usage(provider: str, response: dict) -> UsageReport:
+    """Chat Completions format, also used by Perplexity."""
+    response = _mapping(response)
+    raw = response.get("usage")
+    usage = _mapping(raw)
+    issues = []
+    prompt_details = _details(usage, "prompt_tokens_details", issues)
+    completion_details = _details(usage, "completion_tokens_details", issues)
+    return _report(
+        provider, response.get("model"), raw,
+        input_tokens=_count(usage, "prompt_tokens", issues),
+        output_tokens=_count(usage, "completion_tokens", issues),
+        total_tokens=_count(usage, "total_tokens", issues),
+        cache_read_tokens=_count(prompt_details, "cached_tokens", issues),
+        cache_write_tokens=_count(prompt_details, "cache_write_tokens", issues),
+        reasoning_tokens=_count(completion_details, "reasoning_tokens", issues),
+        derive_total=usage.get("total_tokens") is None, issues=issues,
+    )
 
 
 def get_openai_payload(prompt_from_file, system: str | None = None):

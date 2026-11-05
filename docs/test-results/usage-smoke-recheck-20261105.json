@@ -1,0 +1,176 @@
+{
+  "run_date": "2026-11-05",
+  "method": "Existing CLI with --env-file ~/.crossenv --live; 128-token output cap; retries disabled",
+  "results": [
+    {
+      "agent": "anthropic",
+      "provider": "anthropic",
+      "requested_model": "claude-opus-4-5",
+      "max_output_tokens": 128,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": true,
+      "status": "passed",
+      "usage": {
+        "provider": "anthropic",
+        "model": "claude-opus-4-5-20251101",
+        "input_tokens": 26,
+        "output_tokens": 4,
+        "total_tokens": 30,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": null,
+        "status": "complete",
+        "issues": [
+          "total_derived"
+        ],
+        "raw_usage": {
+          "cache_creation": {
+            "ephemeral_1h_input_tokens": 0,
+            "ephemeral_5m_input_tokens": 0
+          },
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 0,
+          "inference_geo": "not_available",
+          "input_tokens": 26,
+          "output_tokens": 4,
+          "service_tier": "standard",
+          "speed": "standard"
+        }
+      },
+      "text": "OK",
+      "checks": {
+        "fresh_response": true,
+        "expected_text": true,
+        "complete_usage": true,
+        "positive_counts": true,
+        "no_usage_errors": true,
+        "native_usage_retained": true
+      },
+      "checked_at": "2026-11-05T15:59:31.641273+00:00",
+      "command_exit_code": 0
+    },
+    {
+      "agent": "xai",
+      "provider": "xai",
+      "requested_model": "grok-4-1-fast-reasoning",
+      "max_output_tokens": 128,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": true,
+      "status": "passed",
+      "usage": {
+        "provider": "xai",
+        "model": "grok-4.3",
+        "input_tokens": 213,
+        "output_tokens": 78,
+        "total_tokens": 291,
+        "cache_read_tokens": 128,
+        "cache_write_tokens": 0,
+        "reasoning_tokens": null,
+        "status": "complete",
+        "issues": [
+          "total_derived"
+        ],
+        "raw_usage": {
+          "cache_creation_input_tokens": 0,
+          "cache_read_input_tokens": 128,
+          "input_tokens": 85,
+          "output_tokens": 78
+        }
+      },
+      "text": "OK",
+      "checks": {
+        "fresh_response": true,
+        "expected_text": true,
+        "complete_usage": true,
+        "positive_counts": true,
+        "no_usage_errors": true,
+        "native_usage_retained": true
+      },
+      "checked_at": "2026-11-05T15:59:33.892207+00:00",
+      "command_exit_code": 0
+    },
+    {
+      "agent": "perplexity",
+      "provider": "perplexity",
+      "requested_model": "sonar-pro",
+      "max_output_tokens": 128,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": true,
+      "status": "passed",
+      "usage": {
+        "provider": "perplexity",
+        "model": "sonar-pro",
+        "input_tokens": 19,
+        "output_tokens": 1,
+        "total_tokens": 20,
+        "cache_read_tokens": null,
+        "cache_write_tokens": null,
+        "reasoning_tokens": null,
+        "status": "complete",
+        "issues": [],
+        "raw_usage": {
+          "completion_tokens": 1,
+          "prompt_tokens": 19,
+          "total_tokens": 20,
+          "cost": {
+            "input_tokens_cost": 0.00018,
+            "output_tokens_cost": 1e-05,
+            "request_cost": 0.0025,
+            "total_cost": 0.00269
+          },
+          "search_context_size": "low"
+        }
+      },
+      "text": "OK",
+      "checks": {
+        "fresh_response": true,
+        "expected_text": true,
+        "complete_usage": true,
+        "positive_counts": true,
+        "no_usage_errors": true,
+        "native_usage_retained": true
+      },
+      "checked_at": "2026-11-05T15:59:36.156160+00:00",
+      "command_exit_code": 0
+    },
+    {
+      "agent": "gemini",
+      "provider": "gemini",
+      "requested_model": "gemini-2.5-flash",
+      "max_output_tokens": 128,
+      "timeout_seconds": 30,
+      "credentials_present": true,
+      "attempted_request": true,
+      "response_received": false,
+      "status": "failed",
+      "error": {
+        "type": "ClientError",
+        "message": "402 RESOURCE_EXHAUSTED. {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio at https://ai.studio/projects to manage your project and billing. Learn more at https://ai.google.dev/gemini-api/docs/billing#prepay. ', 'status': 'RESOURCE_EXHAUSTED'}}"
+      },
+      "checked_at": "2026-11-05T15:59:36.791877+00:00",
+      "command_exit_code": 1
+    }
+  ],
+  "ollama_discovery": {
+    "hostnames": [
+      "flik.local",
+      "m2mac.local"
+    ],
+    "status": "not_reachable_by_name",
+    "checks": [
+      "Python HTTP lookup",
+      "macOS ping",
+      "macOS hostname cache lookup",
+      "Bonjour address lookup"
+    ],
+    "cached_lan_neighbors_checked_for_port_11434": 17,
+    "responding_ollama_services": 0,
+    "inference_requests": 0
+  }
+}

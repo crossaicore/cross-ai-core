@@ -6,7 +6,7 @@ that is the point: swap providers without changing any other code.
 
 ```python
 from cross_ai_core import (
-    process_prompt, get_content, get_usage,
+    process_prompt, get_content, get_usage, get_usage_report, UsageReport,
     get_default_ai, get_ai_list, check_api_key,
     AIResponse, RateLimitError, QuotaExceededError,
 )
@@ -133,6 +133,72 @@ Returns the first line of the content in `data` — treated as the title.
 
 ---
 
+### `get_usage_report`
+
+```python
+def get_usage_report(ai_key: str, response: dict) -> UsageReport
+```
+
+Extract provider-reported usage without tokenizing the prompt or making a network
+request. `ai_key` accepts a registered provider make or a configured agent name.
+Unknown providers raise `ValueError`. Absent or malformed usage returns a record
+with unknown values and issues, allowing the caller to keep valid response text.
+
+```python
+from dataclasses import asdict
+from cross_ai_core import get_usage_report
+
+usage = get_usage_report(provider, result.response)
+record = asdict(usage)  # A plain dictionary suitable for JSON storage.
+if not result.was_cached:
+    # Account for this request once in the calling application.
+    save_usage(record)
+```
+
+| Field | Meaning |
+|---|---|
+| `provider`, `model` | Resolved make and actual response model; unknown response model is `None` |
+| `input_tokens`, `output_tokens`, `total_tokens` | Nonnegative integers or `None` for unknown; a total is derived only when both parts are known and the provider's total is absent/null |
+| `cache_read_tokens`, `cache_write_tokens` | Subsets of normalized input, not additional totals |
+| `reasoning_tokens` | Subset of normalized output; only mapped when the format defines its meaning |
+| `status` | `complete`, `partial`, `missing`, or `inconsistent` |
+| `issues` | Tuple of stable diagnostic codes; no prompt or provider-message text |
+| `raw_usage` | Detached dictionary of usage metadata, or `None`; excluded from the record's `repr` |
+
+`complete` means aggregate counts are known and consistent. Optional breakdowns
+can still be unknown or carry validation issues. `partial` means some aggregate
+counts are known; `missing` means none are known. `inconsistent` identifies
+contradictory totals or subsets. Invalid counters (including booleans, numeric
+strings and negative numbers) stay unknown. Explicit zero remains zero.
+An explicit invalid total is not replaced by a calculated one. A supplied valid
+total is preserved even when it contradicts the other counts.
+
+Issue codes include `usage_missing`, `total_derived`, `total_mismatch`,
+`invalid_count:<field>`, `breakdown_exceeds_total:<field>`,
+`unsupported_usage_format` (optionally followed by a field name),
+`legacy_usage_incomplete`, and `raw_usage_unavailable` for metadata too deeply
+nested to copy. `total_derived` is informational. Consumers should inspect issues
+as well as status when they require a particular breakdown.
+
+Anthropic and xAI Messages cache reads/writes are included in aggregate input.
+OpenAI cache/reasoning details are already included in its totals. Gemini's
+thinking and tool-use counts are added to output and input respectively; cached
+content is already in prompt input. Gemini supports REST camelCase, nested SDK
+snake_case and old flattened cache records. A legacy unexplained total gap leaves
+aggregate output unknown instead of guessing how many tokens were thinking.
+
+Local response reuse is separate from provider prompt caching. A local hit keeps
+the historical usage record, but `AIResponse.was_cached` means no new provider
+request occurred. Provider prompt-cache hits can still be billed. This library
+does not calculate prices, impose limits, deduplicate an application's ledger,
+or validate that an inference endpoint is still available.
+
+`raw_usage` contains only usage metadata, not the full response or request. It is
+a detached mutable copy: changing it does not change the input response. Keep it
+private and impose storage limits in the consuming application. Additional
+Perplexity search, citation, reasoning and cost fields are preserved as native
+metadata; fields without a verified aggregate/subset mapping are not guessed.
+
 ### `get_usage`
 
 ```python
@@ -148,6 +214,12 @@ usage = get_usage("anthropic", result.response)
 
 Returns `{"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}` if the
 provider or field is absent.
+
+This legacy dictionary loses the distinction between zero and unknown. Prefer
+`get_usage_report()` for accounting. Built-in handlers share the new extraction
+path; unknown input/output becomes zero, and a missing total falls back to the
+sum of those legacy values. Corrected cache/thinking totals are included when
+known. Existing custom handler overrides still work.
 
 ---
 

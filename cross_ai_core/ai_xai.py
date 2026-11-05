@@ -55,6 +55,8 @@ import json
 import os
 
 from .ai_base import BaseAIHandler
+from .ai_anthropic import _messages_usage
+from .usage import UsageReport
 
 AI_MAKE = "xai"
 AI_MODEL = "grok-4-1-fast-reasoning"
@@ -97,12 +99,9 @@ class XAIHandler(BaseAIHandler):
         return get_data_content(select_data)
 
     @classmethod
-    def get_usage(cls, response: dict) -> dict:
-        """Extract token counts from an xAI (Anthropic-compatible) response dict."""
-        usage = response.get("usage", {})
-        inp = usage.get("input_tokens", 0)
-        out = usage.get("output_tokens", 0)
-        return {"input_tokens": inp, "output_tokens": out, "total_tokens": inp + out}
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        # This handler uses /v1/messages, not xAI's Chat/Responses endpoints.
+        return _messages_usage(cls.get_make(), response)
 
 
 

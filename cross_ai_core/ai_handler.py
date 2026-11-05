@@ -9,6 +9,7 @@ from .ai_openai import OpenAIHandler
 from .ai_perplexity import PerplexityHandler
 from .ai_xai import XAIHandler
 from .ai_error_handler import handle_api_error
+from .usage import UsageReport
 
 
 class AIResponse:
@@ -421,6 +422,19 @@ def get_rate_limit_concurrency(make: str) -> int:
             f"Unknown provider '{make}'. "
             f"Known providers: {list(_RATE_LIMIT_CONCURRENCY)}"
         )
+
+
+def get_usage_report(ai_key: str, response: dict) -> UsageReport:
+    """Normalize response usage without replacing missing counts with zero.
+
+    No provider call or tokenization occurs. Local response reuse must be
+    accounted for separately using AIResponse.was_cached.
+    """
+    make = _make_for(ai_key)
+    handler_cls = AI_HANDLER_REGISTRY.get(make)
+    if handler_cls is None:
+        raise ValueError(f"Unsupported AI model: {ai_key}")
+    return handler_cls.get_usage_report(response)
 
 
 def get_usage(ai_key: str, response: dict) -> dict:

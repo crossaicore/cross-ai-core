@@ -46,6 +46,7 @@ from cross_ai_core.ai_handler import (   # noqa: F401
     get_default_ai,
     get_rate_limit_concurrency,
     get_usage,
+    get_usage_report,
     process_prompt,
     put_content,
     put_content_auto,
@@ -82,6 +83,7 @@ from cross_ai_core.recommendations import (   # noqa: F401
     get_recommended,
     get_recommended_default,
 )
+from cross_ai_core.usage import UsageReport  # noqa: F401
 from cross_ai_core.ai_base import BaseAIHandler, _get_cache_dir as get_cache_dir  # noqa: F401
 from cross_ai_core.ai_error_handler import (    # noqa: F401
     handle_api_error,
@@ -117,6 +119,8 @@ __all__ = [
     "get_ai_list",
     "get_rate_limit_concurrency",
     "get_usage",
+    "get_usage_report",
+    "UsageReport",
     "check_api_key",
     # Registry
     "AI_HANDLER_REGISTRY",

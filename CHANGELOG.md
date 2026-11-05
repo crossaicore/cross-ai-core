@@ -6,6 +6,38 @@ Versioning follows Calendar Versioning (`YYYY.M.R`).
 
 ---
 
+## [2026.11.0] — Unreleased
+
+### Added
+- Optional live usage smoke command with dry-run default, a small output limit,
+  one request, disabled retries, and native/normalized metadata in its result.
+  Explicit `--env-file` loading supports `~/.crossenv` through the development
+  dependency `python-dotenv`; exported values retain precedence.
+- `get_usage_report()` and `UsageReport` expose consistent usage across the six
+  existing providers, with explicit unknown counts, cache/reasoning breakdowns,
+  consistency status and detached native usage metadata.
+- Offline provider fixtures and malformed/partial metadata, SDK serialization,
+  old cache, local reuse and compatibility tests. No new runtime dependency.
+
+### Fixed
+- Anthropic and xAI Messages totals include cache read/write input; Gemini output
+  includes thinking and input includes documented tool-use prompt tokens.
+- Gemini preserves nested SDK usage metadata alongside its original response
+  keys. Missing or unexpectedly shaped metadata no longer discards valid text
+  during the package's response conversion.
+- Explicit zero totals are preserved and inconsistencies are reported. Missing
+  counts are not fabricated by the new API.
+
+### Compatibility
+- Existing `get_usage()` calls retain their three-integer dictionary and custom
+  handler overrides remain valid. Corrected provider totals can differ from
+  earlier releases. Incomplete old Gemini entries retain their reported total;
+  unaccounted output is unknown in the new API and zero in the legacy dictionary.
+- `AIResponse` constructor, tuple unpacking and `was_cached` behavior are unchanged.
+- Endpoints, models, retries, pricing and cache storage behavior are unchanged.
+
+---
+
 ## [2026.10.0] — 2026-10-13
 
 ### Fixed

@@ -4,6 +4,18 @@
 You only need API keys for the providers you actually use — **Ollama is keyless** (it runs
 models locally or on your LAN).
 
+## Usage reporting
+
+All six handlers expose `get_usage_report()`, which distinguishes unknown counts
+from measured zero and preserves native usage metadata. Anthropic-compatible
+Messages include cache reads/writes in aggregate input; Gemini includes thinking
+in output and documented tool-use tokens in input. Breakdown counts are subsets,
+not additional totals. The existing `get_usage()` dictionary remains available
+for older callers, with corrected totals and unknown values represented as zero.
+
+See the [usage API contract](api-reference.md#get_usage_report) and the optional
+[live smoke check](live-usage-smoke.md) for field definitions and verification.
+
 ## Quick-pick guide
 
 | Provider key | Model family | Best for | Free tier |

@@ -19,6 +19,8 @@ import json
 import os
 from abc import ABC, abstractmethod
 
+from .usage import UsageReport, _mapping, _report
+
 # fcntl is POSIX-only (macOS / Linux).  cross-st is macOS/Linux primary so this
 # is the normal path.  On Windows (B6 future work) the lock calls are no-ops —
 # the atomic rename still protects against truncation, only concurrent readers
@@ -231,8 +233,17 @@ class BaseAIHandler(ABC):  # Abstract Base Class
         return cls.get_data_content(gen_content).splitlines()[0]
 
     @classmethod
-    @abstractmethod
     def get_usage(cls, response: dict) -> dict:
-        """Return token usage dict: {input_tokens, output_tokens, total_tokens}."""
-        pass
+        """Legacy counts: missing values become zero; prefer get_usage_report."""
+        report = cls.get_usage_report(response)
+        inp, out = report.input_tokens or 0, report.output_tokens or 0
+        return {"input_tokens": inp, "output_tokens": out,
+                "total_tokens": report.total_tokens if report.total_tokens is not None else inp + out}
+
+    @classmethod
+    def get_usage_report(cls, response: dict) -> UsageReport:
+        """Optional extension point; old provider subclasses remain compatible."""
+        response = _mapping(response)
+        return _report(cls.get_make(), response.get("model"), response.get("usage"),
+                       issues=("unsupported_usage_format",))
 
